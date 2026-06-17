@@ -1,0 +1,88 @@
+.tab-bar {
+  display: flex;
+  margin-bottom: 20rpx;
+  background: var(--color-card);
+  border-radius: var(--radius);
+  padding: 6rpx;
+}
+.tab {
+  flex: 1;
+  text-align: center;
+  padding: 16rpx 0;
+  font-size: 26rpx;
+  color: var(--color-text-secondary);
+  border-radius: 8rpx;
+}
+.tab.active {
+  background: var(--color-primary);
+  color: #fff;
+}
+.saving-record {
+  background: var(--color-card);
+  border-radius: var(--radius);
+  padding: 20rpx;
+  margin-bottom: 12rpx;
+  box-shadow: 0 1rpx 4rpx rgba(0,0,0,0.04);
+}
+.record-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.record-type-badge {
+  display: inline-block;
+  padding: 4rpx 14rpx;
+  border-radius: 16rpx;
+  font-size: 22rpx;
+}
+.record-type-badge.dedicated { background: #E3F2FD; color: #1E88E5; }
+.record-type-badge.pool { background: #E8F5E9; color: #43A047; }
+
+/* 汇总卡片 */
+.savings-summary {
+  display: flex;
+  gap: 20rpx;
+  margin-bottom: 20rpx;
+}
+.summary-item {
+  flex: 1;
+  background: var(--color-card);
+  border-radius: var(--radius);
+  padding: 20rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+  align-items: center;
+}
+
+/* 迷你进度条 */
+.mini-progress {
+  width: 100rpx;
+  height: 6rpx;
+  background: #EEEEEE;
+  border-radius: 3rpx;
+  margin-top: 6rpx;
+  display: inline-block;
+}
+.mini-progress-fill {
+  height: 100%;
+  background: var(--color-primary);
+  border-radius: 3rpx;
+}
+
+.bottom-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 20rpx 24rpx;
+  padding-bottom: calc(20rpx + env(safe-area-inset-bottom));
+  background: var(--color-card);
+  box-shadow: 0 -2rpx 12rpx rgba(0,0,0,0.06);
+  z-index: 100;
+}
+
+/* 给页面底部留出按钮空间 */
+.container.has-bottom-bar {
+  padding-bottom: 140rpx;
+}

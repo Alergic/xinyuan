@@ -1,0 +1,64 @@
+<!--存款记录页-->
+<wxs module="util" src="../../utils/util.wxs"></wxs>
+<view class="container has-bottom-bar">
+  <!-- 汇总卡片 -->
+  <view class="savings-summary">
+    <view class="summary-item">
+      <text class="text-light" style="font-size:22rpx">专项存款</text>
+      <text class="fw-bold text-primary">¥{{util.formatMoney(totalDedicated)}}</text>
+    </view>
+    <view class="summary-item">
+      <text class="text-light" style="font-size:22rpx">通用池存入</text>
+      <text class="fw-bold text-success">¥{{util.formatMoney(totalPool)}}</text>
+    </view>
+  </view>
+
+  <!-- 类型切换 -->
+  <view class="tab-bar">
+    <view class="tab {{activeTab === 'all' ? 'active' : ''}}" bindtap="switchTab" data-tab="all">全部</view>
+    <view class="tab {{activeTab === 'dedicated' ? 'active' : ''}}" bindtap="switchTab" data-tab="dedicated">专项存款</view>
+    <view class="tab {{activeTab === 'pool' ? 'active' : ''}}" bindtap="switchTab" data-tab="pool">通用池存入</view>
+  </view>
+
+  <!-- 记录列表 -->
+  <view wx:if="{{records.length > 0}}">
+    <view wx:for="{{records}}" wx:key="_id" class="saving-record">
+      <view class="record-header">
+        <view>
+          <text class="record-type-badge {{item.saving_type === 'dedicated' ? 'dedicated' : 'pool'}}">
+            {{item.saving_type === 'dedicated' ? '专项' : '通用池'}}
+          </text>
+          <text wx:if="{{item.item_name}}" class="text-secondary ml-10" style="font-size:24rpx">{{item.item_name}}</text>
+        </view>
+        <view style="text-align:right">
+          <text class="record-amount text-{{item.saving_type === 'pool' ? 'success' : 'primary'}} fw-bold">
+            +¥{{util.formatMoney(item.amount)}}
+          </text>
+          <view wx:if="{{item.saving_type === 'dedicated' && item.item_target > 0}}" class="mini-progress" style="margin-top:5rpx">
+            <view class="mini-progress-fill" style="width:{{item.item_progress}}%"></view>
+          </view>
+          <text wx:if="{{item.saving_type === 'dedicated' && item.item_target > 0}}" class="text-light" style="font-size:20rpx">
+            心愿进度 {{item.item_progress}}%
+          </text>
+        </view>
+      </view>
+      <view class="flex-between mt-10">
+        <view style="display:flex;align-items:center;flex:1">
+          <text wx:if="{{item.note}}" class="text-light" style="font-size:24rpx">📝 {{item.note}}</text>
+        </view>
+        <view style="display:flex;align-items:center">
+          <text class="text-light" style="font-size:22rpx;margin-right:15rpx">{{item.saved_at_text}}</text>
+          <text class="text-light" style="font-size:28rpx" bindtap="deleteRecord" data-id="{{item._id}}">🗑</text>
+        </view>
+      </view>
+    </view>
+  </view>
+  <view wx:else class="empty-state">
+    <text class="text-light">暂无存款记录</text>
+  </view>
+
+  <!-- 添加按钮 -->
+  <view class="bottom-bar">
+    <button class="btn btn-primary btn-block" bindtap="addSaving">💰 记录存款</button>
+  </view>
+</view>

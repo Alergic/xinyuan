@@ -1,0 +1,138 @@
+/* 详情页样式 */
+.detail-header {
+  display: flex;
+  gap: 20rpx;
+  margin-bottom: 20rpx;
+}
+.detail-swiper {
+  width: 180rpx;
+  height: 180rpx;
+  border-radius: var(--radius);
+  flex-shrink: 0;
+  overflow: hidden;
+}
+.detail-swiper .detail-image {
+  width: 100%;
+  height: 100%;
+}
+.detail-image {
+  width: 180rpx;
+  height: 180rpx;
+  border-radius: var(--radius);
+  flex-shrink: 0;
+}
+.detail-image-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 64rpx;
+  background: #F5F5F5;
+}
+.detail-basic {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.detail-name {
+  font-size: 34rpx;
+  font-weight: 600;
+  line-height: 1.3;
+}
+.detail-meta {
+  display: flex;
+  align-items: center;
+  margin-top: 12rpx;
+  flex-wrap: wrap;
+  gap: 8rpx;
+}
+
+/* 卡片标题 */
+.card-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  margin-bottom: 16rpx;
+}
+
+/* 价格网格 */
+.price-grid {
+  display: flex;
+  gap: 16rpx;
+}
+.price-box {
+  flex: 1;
+  text-align: center;
+  padding: 16rpx 8rpx;
+  background: #FAFAFA;
+  border-radius: 8rpx;
+}
+.price-box .price {
+  display: block;
+  margin-top: 6rpx;
+  font-size: 28rpx;
+}
+
+/* 存款 */
+.progress-section {
+  margin-bottom: 16rpx;
+}
+.detail-actions {
+  display: flex;
+  gap: 12rpx;
+}
+
+/* 任务 */
+.task-item {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  padding: 16rpx 0;
+  border-bottom: 1rpx solid var(--color-border);
+}
+.task-item:last-child {
+  border-bottom: none;
+}
+.task-check {
+  font-size: 36rpx;
+  padding: 4rpx;
+}
+.task-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+.text-through {
+  text-decoration: line-through;
+  color: var(--color-text-light);
+}
+.task-delete {
+  padding: 8rpx;
+  font-size: 28rpx;
+}
+
+/* 操作按钮区 */
+.action-buttons {
+  padding: 20rpx 0 40rpx;
+}
+
+/* 价格历史 */
+.price-record-item {
+  padding: 16rpx 0;
+  border-bottom: 1rpx solid var(--color-border);
+}
+.price-record-item:last-child {
+  border-bottom: none;
+}
+
+/* 存款明细 */
+.saving-records-section {
+  border-top: 1rpx solid var(--color-border);
+  padding-top: 20rpx;
+}
+.saving-record-mini {
+  padding: 14rpx 0;
+  border-bottom: 1rpx dashed var(--color-border);
+}
+.saving-record-mini:last-child {
+  border-bottom: none;
+}

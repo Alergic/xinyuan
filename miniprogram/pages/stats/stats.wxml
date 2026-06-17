@@ -1,0 +1,65 @@
+<!--统计页-->
+<wxs module="util" src="../../utils/util.wxs"></wxs>
+<view class="container">
+  <!-- 总览数据 -->
+  <view class="stats-grid">
+    <view class="stat-card">
+      <text class="stat-num">{{stats.total_wishes}}</text>
+      <text class="stat-label">心愿总数</text>
+    </view>
+    <view class="stat-card">
+      <text class="stat-num text-primary">¥{{util.formatMoney(stats.total_target_amount)}}</text>
+      <text class="stat-label">目标总金额</text>
+    </view>
+    <view class="stat-card">
+      <text class="stat-num text-success">¥{{util.formatMoney(stats.total_saved_amount)}}</text>
+      <text class="stat-label">已存总金额</text>
+    </view>
+    <view class="stat-card">
+      <text class="stat-num" style="color: {{progressColor}}">{{totalProgress}}%</text>
+      <text class="stat-label">总存款进度</text>
+    </view>
+    <view class="stat-card">
+      <text class="stat-num text-primary">¥{{util.formatMoney(stats.pool_balance)}}</text>
+      <text class="stat-label">通用池余额</text>
+    </view>
+    <view class="stat-card">
+      <text class="stat-num text-success">{{stats.purchased_count}}</text>
+      <text class="stat-label">已购买</text>
+    </view>
+    <view class="stat-card">
+      <text class="stat-num text-secondary">{{stats.abandoned_count}}</text>
+      <text class="stat-label">已放弃</text>
+    </view>
+  </view>
+
+  <!-- 本月数据 -->
+  <view class="card">
+    <view class="card-title">📅 本月数据</view>
+    <view class="flex-between mb-10">
+      <text class="text-secondary">本月存款</text>
+      <text class="fw-bold text-success">¥{{util.formatMoney(stats.month_savings)}}</text>
+    </view>
+    <view class="flex-between">
+      <text class="text-secondary">本月新增心愿</text>
+      <text class="fw-bold">{{stats.month_new_items}} 个</text>
+    </view>
+  </view>
+
+  <!-- 状态分布 -->
+  <view class="card">
+    <view class="card-title">📊 状态分布</view>
+    <view class="stat-row">
+      <text class="text-secondary">存款中</text>
+      <text class="fw-bold text-primary">{{stats.saving_count}}</text>
+    </view>
+    <view class="stat-row">
+      <text class="text-secondary">可购买</text>
+      <text class="fw-bold text-success">{{stats.buyable_count}}</text>
+    </view>
+    <view class="stat-row">
+      <text class="text-secondary">已购买</text>
+      <text class="fw-bold">{{stats.purchased_count}}</text>
+    </view>
+  </view>
+</view>

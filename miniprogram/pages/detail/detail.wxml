@@ -1,0 +1,167 @@
+<!--心愿详情页-->
+<wxs module="util" src="../../utils/util.wxs"></wxs>
+<view class="container">
+  <!-- 头部：图片 + 基本信息 -->
+  <view class="detail-header">
+    <!-- 多图轮播 -->
+    <swiper wx:if="{{item.image_urls && item.image_urls.length > 1}}" class="detail-swiper" indicator-dots="{{true}}" indicator-color="#CCC" indicator-active-color="#5C6BC0" circular="{{true}}">
+      <swiper-item wx:for="{{item.image_urls}}" wx:key="index">
+        <image class="detail-image" src="{{item}}" mode="aspectFill" />
+      </swiper-item>
+    </swiper>
+    <!-- 单图 -->
+    <image wx:elif="{{item.image_url}}" class="detail-image" src="{{item.image_url}}" mode="aspectFill" />
+    <!-- 无图 -->
+    <view wx:else class="detail-image detail-image-placeholder">📦</view>
+    <view class="detail-basic">
+      <text class="detail-name">{{item.name}}</text>
+      <view class="detail-meta">
+        <text class="tag tag-{{item.status}}" bindtap="changeStatus">{{statusText}} ▾</text>
+        <text wx:if="{{categoryName}}" class="text-light ml-10">{{categoryName}}</text>
+        <text class="tag tag-{{item.priority}} ml-10">{{priorityText}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 价格信息 -->
+  <view class="card">
+    <view class="card-title">💰 价格信息</view>
+    <view class="price-grid">
+      <view class="price-box">
+        <text class="text-light" style="font-size:24rpx">当前价格</text>
+        <text class="price price-current">¥{{util.formatMoney(item.current_price)}}</text>
+      </view>
+      <view class="price-box">
+        <text class="text-light" style="font-size:24rpx">目标价格</text>
+        <text class="price">¥{{item.target_price ? util.formatMoney(item.target_price) : '未设置'}}</text>
+      </view>
+      <view class="price-box">
+        <text class="text-light" style="font-size:24rpx">已知史低价</text>
+        <text class="price text-success">¥{{lowestPrice ? util.formatMoney(lowestPrice) : '暂无'}}</text>
+      </view>
+    </view>
+    <button class="btn btn-outline btn-small mt-20" bindtap="updatePrice">📝 更新当前价格</button>
+  </view>
+
+  <!-- 价格历史 -->
+  <view class="card" wx:if="{{priceRecords.length > 0}}">
+    <view class="card-title">📈 价格历史 ({{priceRecords.length}}条)</view>
+    <view wx:for="{{priceRecords}}" wx:key="_id" class="price-record-item">
+      <view class="flex-between">
+        <view>
+          <text class="fw-bold">¥{{util.formatMoney(item.price)}}</text>
+          <text wx:if="{{item.platform}}" class="text-light ml-10" style="font-size:22rpx">{{item.platform}}</text>
+        </view>
+        <view style="display:flex;align-items:center">
+          <text class="text-light" style="font-size:22rpx;margin-right:15rpx">{{item.recorded_at_text}}</text>
+          <text class="text-danger" style="font-size:28rpx" bindtap="deletePrice" data-id="{{item._id}}">🗑</text>
+        </view>
+      </view>
+      <text wx:if="{{item.note}}" class="text-light" style="font-size:22rpx">📝 {{item.note}}</text>
+    </view>
+  </view>
+
+  <!-- 存款进度 -->
+  <view class="card">
+    <view class="card-title">💎 存款进度</view>
+    <view class="progress-section">
+      <view class="flex-between mb-10">
+        <text class="text-secondary">目标金额：¥{{util.formatMoney(item.saving_target_amount)}}</text>
+        <text class="fw-bold">已存 ¥{{util.formatMoney(totalSaved)}} ({{progress}}%)</text>
+      </view>
+      <view class="progress-bar" style="height:14rpx">
+        <view class="progress-fill" style="width: {{progress}}%; background: {{progress >= 100 ? 'var(--color-success)' : 'var(--color-primary)'}}"></view>
+      </view>
+      <view class="flex-between mt-10" style="font-size:24rpx; color: var(--color-text-light)">
+        <text>专项存款 ¥{{util.formatMoney(dedicatedSaved)}}</text>
+        <text>通用池分配 ¥{{util.formatMoney(poolAllocated)}}</text>
+      </view>
+    </view>
+    <view class="detail-actions">
+      <button class="btn btn-primary btn-small" bindtap="addSaving">+ 专项存款</button>
+      <button class="btn btn-outline btn-small" bindtap="allocateFromPool">从通用池分配</button>
+    </view>
+    <!-- 存款明细 -->
+    <view wx:if="{{savingRecords.length > 0}}" class="saving-records-section mt-20">
+      <text class="text-light" style="font-size:24rpx;display:block;margin-bottom:15rpx">近期存款记录</text>
+      <view wx:for="{{savingRecords}}" wx:key="_id" class="saving-record-mini">
+        <view class="flex-between">
+          <text class="text-secondary" style="font-size:26rpx">
+            <text wx:if="{{item._type === 'dedicated'}}">专项存款</text>
+            <text wx:elif="{{item._type === 'allocation'}}">通用池分配</text>
+            <text wx:else>存款</text>
+          </text>
+          <text class="fw-bold">+¥{{util.formatMoney(item.amount)}}</text>
+        </view>
+        <view class="flex-between" style="margin-top:6rpx">
+          <text wx:if="{{item.note}}" class="text-light" style="font-size:22rpx">{{item.note}}</text>
+          <text wx:else></text>
+          <view style="display:flex;align-items:center">
+            <text class="text-light" style="font-size:20rpx;margin-right:10rpx">{{item.saved_at_text}}</text>
+            <text class="text-light" style="font-size:24rpx" bindtap="deleteSavingRecord" data-id="{{item._id}}" data-type="{{item._type}}">🗑</text>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- Deadline + 预计完成日 -->
+  <view class="card" wx:if="{{item.deadline || estimatedDays !== null}}">
+    <view class="card-title">📅 时间信息</view>
+    <view wx:if="{{item.deadline}}" class="flex-between mb-10">
+      <text class="text-secondary">Deadline</text>
+      <text class="{{daysLeft < 0 ? 'text-danger' : (daysLeft <= 7 ? 'text-warning' : '')}} fw-bold">
+        {{item.deadline_text}} {{daysLeft > 0 ? '(剩' + daysLeft + '天)' : '(已逾期)'}}
+      </text>
+    </view>
+    <view wx:if="{{estimatedDays !== null}}" class="flex-between">
+      <text class="text-secondary">预计完成日</text>
+      <text class="text-primary fw-bold">
+        {{estimatedDays === 0 ? '已达成 🎉' : (estimatedDays > 0 ? '约' + estimatedDays + '天后' : '暂无足够数据')}}
+      </text>
+    </view>
+  </view>
+
+  <!-- 任务清单 -->
+  <view class="card">
+    <view class="flex-between mb-20">
+      <text class="card-title">✅ 任务清单 ({{tasks.length}})</text>
+      <button class="btn btn-outline btn-small" bindtap="addTask">+ 添加</button>
+    </view>
+    <view wx:if="{{tasks.length > 0}}">
+      <view wx:for="{{tasks}}" wx:key="_id" class="task-item {{item.is_completed ? 'completed' : ''}}">
+        <view class="task-check" bindtap="toggleTask" data-id="{{item._id}}" data-completed="{{item.is_completed}}">
+          <text>{{item.is_completed ? '✅' : '⬜'}}</text>
+        </view>
+        <view class="task-content flex-1" bindlongpress="editTask" data-id="{{item._id}}" data-title="{{item.title}}">
+          <text class="{{item.is_completed ? 'text-through' : ''}}">{{item.title}}</text>
+          <text wx:if="{{item.deadline}}" class="text-light" style="font-size:22rpx">截止: {{item.deadline_text}}</text>
+        </view>
+        <text class="text-light task-delete" bindtap="deleteTask" data-id="{{item._id}}">🗑</text>
+      </view>
+    </view>
+    <view wx:else class="empty-state">
+      <text class="text-light" style="font-size:24rpx">暂无任务，添加任务帮助达成目标</text>
+    </view>
+  </view>
+
+  <!-- 描述 -->
+  <view class="card" wx:if="{{item.description}}">
+    <view class="card-title">📝 备注</view>
+    <text class="text-secondary">{{item.description}}</text>
+  </view>
+
+  <!-- 商品链接 -->
+  <view class="card" wx:if="{{item.product_url}}">
+    <view class="card-title">🔗 商品链接</view>
+    <text class="text-primary" style="word-break:break-all;font-size:24rpx">{{item.product_url}}</text>
+  </view>
+
+  <!-- 操作按钮 -->
+  <view class="action-buttons">
+    <button class="btn btn-outline btn-block" bindtap="editItem">✏️ 编辑</button>
+    <view class="flex-center mt-30">
+      <text class="text-light" style="font-size:24rpx;text-decoration:underline" bindtap="deleteWish">🗑 删除心愿</text>
+    </view>
+  </view>
+</view>

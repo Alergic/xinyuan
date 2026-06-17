@@ -1,0 +1,26 @@
+/**
+ * 心愿计划 - WXS 模板格式化工具
+ * WXS 运行在视图层，比 Page 方法更可靠，专用于 WXML 中的数据格式化
+ */
+
+/**
+ * 格式化金额，保留两位小数
+ */
+var formatMoney = function(num) {
+  if (num === null || num === undefined) return '0.00';
+  var n = parseFloat(num);
+  if (isNaN(n)) return '0.00';
+  return n.toFixed(2);
+};
+
+/**
+ * 获取状态文本
+ */
+var statusText = function(status, statusMap) {
+  return statusMap[status] || status;
+};
+
+module.exports = {
+  formatMoney: formatMoney,
+  statusText: statusText
+};

@@ -1,0 +1,90 @@
+<!--添加/编辑心愿页-->
+<view class="container">
+  <view class="card">
+    <!-- 物品名称（必填） -->
+    <view class="form-group">
+      <view class="form-label">物品名称 <text class="required">*</text></view>
+      <input class="form-input" placeholder="例如：Sony WH-1000XM5 耳机" value="{{form.name}}" bindinput="onFieldChange" data-field="name" maxlength="50" />
+    </view>
+
+    <!-- 当前价格（必填） -->
+    <view class="form-group">
+      <view class="form-label">当前价格 <text class="required">*</text></view>
+      <input class="form-input" type="digit" placeholder="现在看到的价格" value="{{form.current_price}}" bindinput="onFieldChange" data-field="current_price" />
+    </view>
+
+    <!-- 目标价格（可选） -->
+    <view class="form-group">
+      <view class="form-label">目标价格 <text class="text-light">（可选）</text></view>
+      <input class="form-input" type="digit" placeholder="希望入手的价格" value="{{form.target_price}}" bindinput="onFieldChange" data-field="target_price" />
+    </view>
+
+    <!-- 分类（可选） -->
+    <view class="form-group">
+      <view class="form-label">分类</view>
+      <picker mode="selector" range="{{categoryNames}}" bindchange="onCategoryChange">
+        <view class="picker-display">
+          <text class="{{categoryNames[form.category_index] ? '' : 'text-light'}}">{{categoryNames[form.category_index] || '选择分类'}}</text>
+          <text class="text-light">›</text>
+        </view>
+      </picker>
+    </view>
+
+    <!-- 优先级 -->
+    <view class="form-group">
+      <view class="form-label">优先级</view>
+      <view class="priority-options">
+        <view class="priority-btn {{form.priority === 'high' ? 'selected high' : ''}}" bindtap="setPriority" data-value="high">🔴 高</view>
+        <view class="priority-btn {{form.priority === 'medium' ? 'selected medium' : ''}}" bindtap="setPriority" data-value="medium">🟡 中</view>
+        <view class="priority-btn {{form.priority === 'low' ? 'selected low' : ''}}" bindtap="setPriority" data-value="low">🟢 低</view>
+      </view>
+    </view>
+
+    <!-- Deadline（可选） -->
+    <view class="form-group">
+      <view class="form-label">
+        <text>Deadline <text class="text-light">（可选）</text></text>
+        <text wx:if="{{form.deadline}}" class="clear-deadline" bindtap="clearDeadline">✕ 清除</text>
+      </view>
+      <picker mode="date" value="{{form.deadline}}" bindchange="onDeadlineChange">
+        <view class="picker-display">
+          <text class="{{form.deadline_text ? '' : 'text-light'}}">{{form.deadline_text || '选择截止日期'}}</text>
+          <text class="text-light">📅</text>
+        </view>
+      </picker>
+    </view>
+
+    <!-- 商品图片（可选，最多 3 张） -->
+    <view class="form-group">
+      <view class="form-label">商品图片 <text class="text-light">（可选，最多 3 张）</text></view>
+      <view class="image-upload-grid">
+        <view wx:for="{{imageUrls}}" wx:key="index" class="image-upload-item">
+          <image class="uploaded-image" src="{{item}}" mode="aspectFill" />
+          <view class="image-remove" bindtap="removeImage" data-index="{{index}}">✕</view>
+        </view>
+        <view wx:if="{{imageUrls.length < 3}}" class="image-upload-item image-upload-add" bindtap="uploadImage">
+          <text style="font-size:48rpx;color:#CCC">+</text>
+          <text class="text-light" style="font-size:20rpx">上传图片</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 商品链接（可选） -->
+    <view class="form-group">
+      <view class="form-label">商品链接 <text class="text-light">（可选）</text></view>
+      <textarea class="form-textarea" placeholder="粘贴商品链接" value="{{form.product_url}}" bindinput="onFieldChange" data-field="product_url" auto-height maxlength="500" />
+    </view>
+
+    <!-- 描述（可选） -->
+    <view class="form-group">
+      <view class="form-label">描述 <text class="text-light">（可选）</text></view>
+      <textarea class="form-textarea" placeholder="购买理由、规格、备注等" value="{{form.description}}" bindinput="onFieldChange" data-field="description" maxlength="200" />
+    </view>
+  </view>
+
+  <!-- 提交按钮 -->
+  <button class="btn btn-primary btn-block" bindtap="submit">💾 {{isEdit ? '保存修改' : '添加心愿'}}</button>
+
+  <!-- 删除按钮（编辑模式） -->
+  <button wx:if="{{isEdit}}" class="btn btn-danger btn-block mt-20" bindtap="deleteItem">🗑 删除心愿</button>
+</view>

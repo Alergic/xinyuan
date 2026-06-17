@@ -1,0 +1,35 @@
+.stats-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+  margin-bottom: 20rpx;
+}
+.stat-card {
+  width: calc(50% - 8rpx);
+  background: var(--color-card);
+  border-radius: var(--radius);
+  padding: 24rpx 16rpx;
+  text-align: center;
+  box-shadow: var(--shadow);
+}
+.stat-num {
+  display: block;
+  font-size: 36rpx;
+  font-weight: 700;
+  color: var(--color-text);
+}
+.stat-label {
+  display: block;
+  font-size: 22rpx;
+  color: var(--color-text-light);
+  margin-top: 6rpx;
+}
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 14rpx 0;
+  border-bottom: 1rpx solid var(--color-border);
+}
+.stat-row:last-child {
+  border-bottom: none;
+}

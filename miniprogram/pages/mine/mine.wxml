@@ -1,0 +1,50 @@
+<!--我的页面-->
+<wxs module="util" src="../../utils/util.wxs"></wxs>
+<view class="container">
+  <!-- 用户信息 -->
+  <view class="user-card">
+    <image class="avatar" src="{{avatarUrl || '/images/default-avatar.png'}}" mode="aspectFill" />
+    <view class="user-info">
+      <text class="nickname">{{nickname || '心愿用户'}}</text>
+      <text class="text-light" style="font-size:22rpx">每一步都算数 💪</text>
+    </view>
+  </view>
+
+  <!-- 我的数据 -->
+  <view class="card">
+    <view class="card-title">📋 我的数据</view>
+    <view class="menu-item" bindtap="goWishlist">
+      <text>❤️ 我的心愿</text>
+      <text class="text-light">{{stats.total_wishes}} 个 ›</text>
+    </view>
+    <view class="menu-item" bindtap="goSavings">
+      <text>💰 存款记录</text>
+      <text class="text-light">›</text>
+    </view>
+    <view class="menu-item" bindtap="goPool">
+      <text>🏦 通用存款池</text>
+      <text class="text-light">¥{{util.formatMoney(stats.pool_balance)}} ›</text>
+    </view>
+    <view class="menu-item" bindtap="goStats">
+      <text>📊 统计</text>
+      <text class="text-light">›</text>
+    </view>
+  </view>
+
+  <!-- 设置 -->
+  <view class="card">
+    <view class="card-title">⚙️ 设置</view>
+    <view class="menu-item" bindtap="goCategory">
+      <text>📁 分类管理</text>
+      <text class="text-light">›</text>
+    </view>
+    <view class="menu-item" bindtap="showComingSoon">
+      <text>🔔 提醒设置</text>
+      <text class="text-light">即将推出 ›</text>
+    </view>
+    <view class="menu-item" bindtap="showAbout">
+      <text>ℹ️ 关于心愿计划</text>
+      <text class="text-light">v1.0.0 ›</text>
+    </view>
+  </view>
+</view>

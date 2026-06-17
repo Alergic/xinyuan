@@ -1,0 +1,109 @@
+<!--首页 - 心愿计划总览-->
+<wxs module="util" src="../../utils/util.wxs"></wxs>
+<view class="container">
+  <!-- 顶部用户问候 -->
+  <view class="header">
+    <view class="header-greeting">
+      <text class="header-title">我的心愿计划</text>
+      <text class="header-subtitle">每一步，都离想要的生活更近</text>
+    </view>
+  </view>
+
+  <!-- 总览卡片 -->
+  <view class="overview-grid">
+    <view class="overview-item">
+      <text class="overview-num">{{stats.total_wishes}}</text>
+      <text class="overview-label">心愿总数</text>
+    </view>
+    <view class="overview-item highlight-saving">
+      <text class="overview-num">{{stats.saving_count}}</text>
+      <text class="overview-label">存款中</text>
+    </view>
+    <view class="overview-item highlight-buyable">
+      <text class="overview-num">{{stats.buyable_count}}</text>
+      <text class="overview-label">可购买</text>
+    </view>
+    <view class="overview-item highlight-done">
+      <text class="overview-num">{{stats.purchased_count}}</text>
+      <text class="overview-label">已购买</text>
+    </view>
+  </view>
+
+  <!-- 金额概览 -->
+  <view class="amount-cards">
+    <view class="amount-card">
+      <view class="amount-row">
+        <text class="amount-label">目标总金额</text>
+        <text class="amount-value">¥{{util.formatMoney(stats.total_target_amount)}}</text>
+      </view>
+      <view class="amount-row">
+        <text class="amount-label">已存入总额</text>
+        <text class="amount-value text-success">¥{{util.formatMoney(stats.total_saved_amount)}}</text>
+      </view>
+      <view class="amount-divider"></view>
+      <view class="amount-row">
+        <text class="amount-label">通用存款池余额</text>
+        <text class="amount-value text-primary fw-bold">¥{{util.formatMoney(stats.pool_balance)}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 快捷操作 -->
+  <view class="quick-actions">
+    <view class="action-btn" bindtap="goAddWish">
+      <view class="action-icon">➕</view>
+      <text>添加心愿</text>
+    </view>
+    <view class="action-btn" bindtap="goAddSaving">
+      <view class="action-icon">💰</view>
+      <text>记录存款</text>
+    </view>
+    <view class="action-btn" bindtap="goUpdatePrice">
+      <view class="action-icon">📊</view>
+      <text>浏览心愿</text>
+    </view>
+    <view class="action-btn" bindtap="goPool">
+      <view class="action-icon">🏦</view>
+      <text>分配存款池</text>
+    </view>
+  </view>
+
+  <!-- 重点心愿 -->
+  <view class="section">
+    <view class="section-header">
+      <text class="section-title">重点心愿</text>
+    </view>
+
+    <!-- 进度最高 -->
+    <view wx:if="{{topProgressItem}}" class="highlight-card" bindtap="goDetail" data-id="{{topProgressItem._id}}">
+      <view class="highlight-badge badge-progress">进度最快</view>
+      <text class="highlight-name">{{topProgressItem.name}}</text>
+      <view class="progress-bar mt-10">
+        <view class="progress-fill" style="width: {{topProgressItem.progress}}%; background: var(--color-primary)"></view>
+      </view>
+      <text class="text-secondary" style="font-size:24rpx">已存 ¥{{util.formatMoney(topProgressItem.total_saved)}} / ¥{{util.formatMoney(topProgressItem.saving_target_amount)}}（{{topProgressItem.progress}}%）</text>
+    </view>
+
+    <!-- 临近 deadline -->
+    <view wx:if="{{nearDeadlineItem}}" class="highlight-card" bindtap="goDetail" data-id="{{nearDeadlineItem._id}}">
+      <view class="highlight-badge badge-warning">
+        <text wx:if="{{nearDeadlineItem.days_left > 0}}">还有{{nearDeadlineItem.days_left}}天</text>
+        <text wx:else>已逾期</text>
+      </view>
+      <text class="highlight-name">{{nearDeadlineItem.name}}</text>
+      <text class="text-secondary" style="font-size:24rpx">截止：{{nearDeadlineItem.deadline_text}}</text>
+    </view>
+
+    <!-- 达到目标价格 -->
+    <view wx:if="{{priceReachedItem}}" class="highlight-card" bindtap="goDetail" data-id="{{priceReachedItem._id}}">
+      <view class="highlight-badge badge-success">低于目标价</view>
+      <text class="highlight-name">{{priceReachedItem.name}}</text>
+      <text class="text-secondary" style="font-size:24rpx">当前 ¥{{util.formatMoney(priceReachedItem.current_price)}} ≤ 目标 ¥{{util.formatMoney(priceReachedItem.target_price)}}</text>
+    </view>
+
+    <!-- 空状态 -->
+    <view wx:if="{{!topProgressItem && !nearDeadlineItem && !priceReachedItem}}" class="empty-state">
+      <text>还没有心愿哦～</text>
+    </view>
+  </view>
+</view>

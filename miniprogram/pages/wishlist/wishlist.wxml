@@ -1,0 +1,105 @@
+<!--心愿列表页-->
+<wxs module="util" src="../../utils/util.wxs"></wxs>
+<view class="container">
+  <!-- 筛选栏 -->
+  <view class="filter-bar">
+    <view class="filter-item {{activeFilter === 'status' ? 'active' : ''}}" bindtap="showFilter" data-type="status">
+      <text>{{statusLabel}}</text>
+      <text class="filter-arrow">▼</text>
+    </view>
+    <view class="filter-item {{activeFilter === 'category' ? 'active' : ''}}" bindtap="showFilter" data-type="category">
+      <text>{{categoryLabel}}</text>
+      <text class="filter-arrow">▼</text>
+    </view>
+    <view class="filter-item {{activeFilter === 'sort' ? 'active' : ''}}" bindtap="showFilter" data-type="sort">
+      <text>{{sortLabel}}</text>
+      <text class="filter-arrow">▼</text>
+    </view>
+    <view class="filter-item" bindtap="onSearch">
+      <text>🔍</text>
+    </view>
+  </view>
+
+  <!-- 筛选下拉面板 -->
+  <view wx:if="{{activeFilter}}" class="filter-panel">
+    <!-- 状态筛选 -->
+    <view wx:if="{{activeFilter === 'status'}}" class="filter-options">
+      <view class="filter-option {{filters.status === 'all' ? 'selected' : ''}}" data-value="all" bindtap="onFilter" data-key="status">全部</view>
+      <view class="filter-option {{filters.status === 'planning' ? 'selected' : ''}}" data-value="planning" bindtap="onFilter" data-key="status">计划中</view>
+      <view class="filter-option {{filters.status === 'saving' ? 'selected' : ''}}" data-value="saving" bindtap="onFilter" data-key="status">存款中</view>
+      <view class="filter-option {{filters.status === 'buyable' ? 'selected' : ''}}" data-value="buyable" bindtap="onFilter" data-key="status">可购买</view>
+      <view class="filter-option {{filters.status === 'purchased' ? 'selected' : ''}}" data-value="purchased" bindtap="onFilter" data-key="status">已购买</view>
+      <view class="filter-option {{filters.status === 'overdue' ? 'selected' : ''}}" data-value="overdue" bindtap="onFilter" data-key="status">已逾期</view>
+      <view class="filter-option {{filters.status === 'abandoned' ? 'selected' : ''}}" data-value="abandoned" bindtap="onFilter" data-key="status">已放弃</view>
+      <view class="filter-option {{filters.status === 'paused' ? 'selected' : ''}}" data-value="paused" bindtap="onFilter" data-key="status">暂缓</view>
+    </view>
+    <!-- 分类筛选 -->
+    <view wx:if="{{activeFilter === 'category'}}" class="filter-options">
+      <view class="filter-option {{filters.category_id === 'all' ? 'selected' : ''}}" data-value="all" bindtap="onFilter" data-key="category_id">全部分类</view>
+      <view wx:for="{{categories}}" wx:key="_id" class="filter-option {{filters.category_id === item._id ? 'selected' : ''}}" data-value="{{item._id}}" bindtap="onFilter" data-key="category_id">{{item.name}}</view>
+    </view>
+    <!-- 排序 -->
+    <view wx:if="{{activeFilter === 'sort'}}" class="filter-options">
+      <view class="filter-option {{filters.sort === 'updated_at' ? 'selected' : ''}}" data-value="updated_at" bindtap="onFilter" data-key="sort">最近更新</view>
+      <view class="filter-option {{filters.sort === 'created_at' ? 'selected' : ''}}" data-value="created_at" bindtap="onFilter" data-key="sort">最近添加</view>
+      <view class="filter-option {{filters.sort === 'deadline' ? 'selected' : ''}}" data-value="deadline" bindtap="onFilter" data-key="sort">Deadline 最近</view>
+      <view class="filter-option {{filters.sort === 'current_price' ? 'selected' : ''}}" data-value="current_price" bindtap="onFilter" data-key="sort">价格最高</view>
+      <view class="filter-option {{filters.sort === 'current_price_asc' ? 'selected' : ''}}" data-value="current_price_asc" bindtap="onFilter" data-key="sort">价格最低</view>
+    </view>
+  </view>
+
+  <!-- 物品列表 -->
+  <view wx:if="{{items.length > 0}}" class="wishlist">
+    <view wx:for="{{items}}" wx:key="_id" class="wish-card {{item.status === 'purchased' || item.status === 'abandoned' ? 'wish-card--inactive' : ''}}" bindtap="goDetail" data-id="{{item._id}}">
+      <!-- 图片 -->
+      <view class="wish-image-wrap">
+        <image wx:if="{{item.image_url}}" class="wish-image" src="{{item.image_url}}" mode="aspectFill" />
+        <view wx:else class="wish-image wish-image-placeholder">📦</view>
+        <view wx:if="{{item.image_urls && item.image_urls.length > 1}}" class="wish-image-count">{{item.image_urls.length}}图</view>
+      </view>
+
+      <!-- 信息 -->
+      <view class="wish-info">
+        <view class="flex-between">
+          <text class="wish-name">{{item.name}}</text>
+          <text class="tag tag-{{item.display_status || item.status}}">{{item.status_text}}</text>
+          <text wx:if="{{item.priority_text}}" class="tag tag-{{item.priority}} ml-10">{{item.priority_text}}</text>
+        </view>
+        <view class="wish-meta">
+          <text wx:if="{{item.category_name}}" class="text-light">{{item.category_name}}</text>
+        </view>
+        <view class="wish-prices">
+          <text class="price price-current">¥{{util.formatMoney(item.current_price)}}</text>
+          <text wx:if="{{item.target_price}}" class="price price-target ml-10">目标 ¥{{util.formatMoney(item.target_price)}}</text>
+          <text wx:if="{{item.lowest_price}}" class="price price-lowest ml-10">史低 ¥{{util.formatMoney(item.lowest_price)}}</text>
+        </view>
+        <!-- 存款进度 -->
+        <view class="mt-10">
+          <view class="progress-bar">
+            <view class="progress-fill" style="width: {{item.progress}}%; background: {{item.progress >= 100 ? 'var(--color-success)' : (item.progress >= 50 ? 'var(--color-primary)' : 'var(--color-warning)')}}"></view>
+          </view>
+          <text class="text-light" style="font-size:22rpx">已存 ¥{{util.formatMoney(item.total_saved || 0)}} / ¥{{util.formatMoney(item.saving_target_amount)}}（{{item.progress}}%）</text>
+        </view>
+        <!-- Deadline -->
+        <view wx:if="{{item.deadline}}" class="wish-deadline">
+          <text class="text-{{item.days_left < 0 ? 'danger' : (item.days_left <= 7 ? 'warning' : 'secondary')}}" style="font-size:22rpx">
+            ⏰ 截止 {{item.deadline_text}}
+            <text wx:if="{{item.days_left > 0}}">（剩{{item.days_left}}天）</text>
+            <text wx:else>（已逾期）</text>
+          </text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 空状态 -->
+  <view wx:else class="empty-state">
+    <text>还没有心愿物品～</text>
+    <text class="text-light mt-10">点击右下角 + 添加第一个心愿吧</text>
+  </view>
+
+  <!-- 添加按钮（浮动） -->
+  <view class="fab" bindtap="goAdd">
+    <text class="fab-text">+</text>
+  </view>
+</view>

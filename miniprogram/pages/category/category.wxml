@@ -1,0 +1,34 @@
+<!--分类管理页-->
+<view class="container">
+  <!-- 默认分类说明 -->
+  <view class="card">
+    <text class="text-secondary" style="font-size:24rpx">分类帮助你整理心愿物品，每个分类会统计物品数量和目标金额。</text>
+  </view>
+
+  <!-- 分类列表 -->
+  <view wx:if="{{categories.length > 0}}" class="category-list">
+    <view wx:for="{{categories}}" wx:key="_id" class="category-item">
+      <view class="category-left">
+        <view class="category-color" style="background: {{item.color || '#5C6BC0'}}"></view>
+        <view>
+          <text class="category-name">{{item.name}}</text>
+          <text class="text-light" style="font-size:22rpx">{{item.item_count || 0}} 个心愿</text>
+        </view>
+      </view>
+      <view class="category-right">
+        <view class="category-action-btn" bindtap="editCategory" data-item="{{item}}">
+          <text>✏️</text>
+        </view>
+        <view class="category-action-btn" bindtap="deleteCategory" data-id="{{item._id}}">
+          <text>🗑</text>
+        </view>
+      </view>
+    </view>
+  </view>
+  <view wx:else class="empty-state">
+    <text class="text-light">暂无自定义分类</text>
+  </view>
+
+  <!-- 添加分类 -->
+  <button class="btn btn-primary btn-block mt-30" bindtap="addCategory">+ 添加新分类</button>
+</view>

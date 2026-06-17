@@ -1,0 +1,6 @@
+{
+  "name": "cloud-common",
+  "version": "1.0.0",
+  "main": "index.js",
+  "description": "心愿计划 - 云函数公共工具模块"
+}

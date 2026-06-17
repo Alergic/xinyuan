@@ -1,0 +1,211 @@
+/* ============================================
+ * 心愿计划 - 全局样式
+ * 设计风格：清爽、温和、有计划感
+ * ============================================ */
+
+/* === CSS 变量（自定义属性） === */
+page {
+  --color-primary: #5C6BC0;      /* 主题色 - 温和的蓝紫 */
+  --color-primary-light: #E8EAF6; /* 主题浅色 */
+  --color-success: #66BB6A;      /* 成功/可购买 */
+  --color-warning: #FFA726;      /* 提醒 */
+  --color-danger: #EF5350;       /* 逾期/放弃 */
+  --color-info: #42A5F5;         /* 信息 */
+  --color-text: #333333;         /* 主文字 */
+  --color-text-secondary: #888888; /* 次要文字 */
+  --color-text-light: #B0B0B0;   /* 辅助文字 */
+  --color-bg: #F5F5F5;           /* 背景 */
+  --color-card: #FFFFFF;         /* 卡片背景 */
+  --color-border: #EBEBEB;       /* 分割线 */
+  --radius: 12rpx;               /* 圆角 */
+  --shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.06); /* 卡片阴影 */
+
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 28rpx;
+  color: var(--color-text);
+  background-color: var(--color-bg);
+  box-sizing: border-box;
+}
+
+/* === 通用布局 === */
+.container {
+  padding: 24rpx;
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+
+/* === 卡片 === */
+.card {
+  background: var(--color-card);
+  border-radius: var(--radius);
+  padding: 24rpx;
+  margin-bottom: 20rpx;
+  box-shadow: var(--shadow);
+}
+
+/* === 按钮 === */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16rpx 40rpx;
+  border-radius: 48rpx;
+  font-size: 28rpx;
+  font-weight: 500;
+  border: none;
+  transition: all 0.2s;
+}
+.btn-primary {
+  background: var(--color-primary);
+  color: #fff;
+}
+.btn-primary:active {
+  opacity: 0.85;
+}
+.btn-outline {
+  background: transparent;
+  color: var(--color-primary);
+  border: 2rpx solid var(--color-primary);
+}
+.btn-danger {
+  background: var(--color-danger);
+  color: #fff;
+}
+.btn-small {
+  padding: 8rpx 24rpx;
+  font-size: 24rpx;
+}
+.btn-block {
+  display: flex;
+  width: 100%;
+}
+
+/* === 表单 === */
+.form-group {
+  margin-bottom: 24rpx;
+}
+.form-label {
+  display: block;
+  font-size: 28rpx;
+  color: var(--color-text);
+  margin-bottom: 12rpx;
+  font-weight: 500;
+}
+.form-label .required {
+  color: var(--color-danger);
+  margin-left: 4rpx;
+}
+.form-input {
+  width: 100%;
+  padding: 24rpx 28rpx;
+  border: 2rpx solid var(--color-border);
+  border-radius: var(--radius);
+  font-size: 28rpx;
+  background: #FAFAFA;
+  box-sizing: border-box;
+  transition: border-color 0.2s;
+}
+.form-input:focus {
+  border-color: var(--color-primary);
+  background: #fff;
+}
+.form-textarea {
+  width: 100%;
+  min-height: 160rpx;
+  padding: 20rpx 24rpx;
+  border: 2rpx solid var(--color-border);
+  border-radius: var(--radius);
+  font-size: 28rpx;
+  background: #FAFAFA;
+  box-sizing: border-box;
+}
+
+/* === 进度条 === */
+.progress-bar {
+  height: 10rpx;
+  background: #EEEEEE;
+  border-radius: 5rpx;
+  overflow: hidden;
+}
+.progress-bar .progress-fill {
+  height: 100%;
+  border-radius: 5rpx;
+  transition: width 0.3s ease;
+}
+
+/* === 标签 === */
+.tag {
+  display: inline-block;
+  padding: 4rpx 16rpx;
+  border-radius: 20rpx;
+  font-size: 22rpx;
+  line-height: 1.6;
+}
+.tag-high { background: #FFEBEE; color: #E53935; }
+.tag-medium { background: #FFF3E0; color: #F57C00; }
+.tag-low { background: #E8EAF6; color: #5C6BC0; }
+.tag-planning { background: #ECEFF1; color: #607D8B; }
+.tag-saving { background: #E3F2FD; color: #1E88E5; }
+.tag-buyable { background: #E8F5E9; color: #43A047; }
+.tag-purchased { background: #F3E5F5; color: #8E24AA; }
+.tag-abandoned { background: #EEEEEE; color: #9E9E9E; }
+.tag-paused { background: #FFF8E1; color: #F9A825; }
+.tag-overdue { background: #FFEBEE; color: #E53935; }
+
+/* === 价格文字 === */
+.price {
+  font-weight: 600;
+  color: var(--color-text);
+}
+.price-current {
+  font-size: 36rpx;
+}
+.price-target {
+  font-size: 26rpx;
+  color: var(--color-text-secondary);
+}
+.price-lowest {
+  font-size: 24rpx;
+  color: var(--color-success);
+}
+
+/* === 空状态 === */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 80rpx 0;
+}
+.empty-state image {
+  width: 200rpx;
+  height: 200rpx;
+  margin-bottom: 24rpx;
+  opacity: 0.4;
+}
+.empty-state text {
+  font-size: 28rpx;
+  color: var(--color-text-light);
+}
+
+/* === 工具类 === */
+.flex { display: flex; }
+.flex-between { display: flex; justify-content: space-between; align-items: center; }
+.flex-center { display: flex; align-items: center; justify-content: center; }
+.flex-wrap { flex-wrap: wrap; }
+.flex-1 { flex: 1; }
+.text-center { text-align: center; }
+.text-right { text-align: right; }
+.text-secondary { color: var(--color-text-secondary); }
+.text-light { color: var(--color-text-light); }
+.text-primary { color: var(--color-primary); }
+.text-success { color: var(--color-success); }
+.text-danger { color: var(--color-danger); }
+.text-warning { color: var(--color-warning); }
+.mt-10 { margin-top: 10rpx; }
+.mt-20 { margin-top: 20rpx; }
+.mt-30 { margin-top: 30rpx; }
+.mb-10 { margin-bottom: 10rpx; }
+.mb-20 { margin-bottom: 20rpx; }
+.ml-10 { margin-left: 10rpx; }
+.mr-10 { margin-right: 10rpx; }
+.fw-bold { font-weight: 600; }

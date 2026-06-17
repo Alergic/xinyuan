@@ -1,0 +1,163 @@
+/* 筛选栏 */
+.filter-bar {
+  display: flex;
+  gap: 12rpx;
+  padding: 16rpx 0;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--color-bg);
+}
+.filter-item {
+  display: flex;
+  align-items: center;
+  gap: 6rpx;
+  padding: 12rpx 20rpx;
+  background: var(--color-card);
+  border-radius: 32rpx;
+  font-size: 24rpx;
+  color: var(--color-text-secondary);
+}
+.filter-item.active {
+  color: var(--color-primary);
+  background: var(--color-primary-light);
+}
+.filter-arrow {
+  font-size: 18rpx;
+}
+
+/* 筛选面板 */
+.filter-panel {
+  background: var(--color-card);
+  border-radius: var(--radius);
+  padding: 16rpx;
+  margin-bottom: 16rpx;
+  box-shadow: var(--shadow);
+}
+.filter-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+}
+.filter-option {
+  padding: 12rpx 24rpx;
+  border-radius: 32rpx;
+  font-size: 24rpx;
+  background: #F5F5F5;
+  color: var(--color-text-secondary);
+}
+.filter-option.selected {
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  font-weight: 500;
+}
+
+/* 心愿列表 */
+.wishlist {
+  padding-bottom: 120rpx;
+}
+.wish-card {
+  display: flex;
+  background: var(--color-card);
+  border-radius: var(--radius);
+  padding: 20rpx;
+  margin-bottom: 16rpx;
+  box-shadow: var(--shadow);
+}
+.wish-image-wrap {
+  position: relative;
+  flex-shrink: 0;
+  margin-right: 20rpx;
+}
+.wish-image-count {
+  position: absolute;
+  bottom: 4rpx;
+  right: 4rpx;
+  background: rgba(0,0,0,0.55);
+  color: #fff;
+  font-size: 18rpx;
+  padding: 2rpx 8rpx;
+  border-radius: 8rpx;
+  line-height: 1.4;
+}
+.wish-image {
+  width: 140rpx;
+  height: 140rpx;
+  border-radius: 8rpx;
+  flex-shrink: 0;
+  margin-right: 20rpx;
+}
+.wish-image-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 48rpx;
+  background: #F5F5F5;
+}
+.wish-info {
+  flex: 1;
+  overflow: hidden;
+}
+.wish-name {
+  font-size: 30rpx;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 320rpx;
+}
+.wish-meta {
+  margin-top: 4rpx;
+  font-size: 22rpx;
+}
+.wish-prices {
+  margin-top: 8rpx;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+.wish-deadline {
+  margin-top: 8rpx;
+}
+
+/* 浮动按钮 */
+.fab {
+  position: fixed;
+  bottom: 120rpx;
+  right: 40rpx;
+  width: 100rpx;
+  height: 100rpx;
+  background: var(--color-primary);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6rpx 20rpx rgba(92, 107, 192, 0.4);
+  z-index: 100;
+}
+.fab-text {
+  font-size: 48rpx;
+  color: #fff;
+  line-height: 1;
+}
+.fab:active {
+  opacity: 0.85;
+  transform: scale(0.95);
+}
+
+/* 已购买/已放弃卡片视觉降级 */
+.wish-card--inactive {
+  opacity: 0.55;
+}
+.wish-card--inactive .wish-image {
+  filter: grayscale(100%);
+}
+
+/* 优先级标签 */
+.tag-priority {
+  background: #F5F5F5;
+  color: var(--color-text-secondary);
+  font-size: 20rpx;
+  padding: 2rpx 10rpx;
+  border-radius: 8rpx;
+}

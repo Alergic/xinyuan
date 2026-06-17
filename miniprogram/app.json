@@ -1,0 +1,52 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/wishlist/wishlist",
+    "pages/add/add",
+    "pages/detail/detail",
+    "pages/savings/savings",
+    "pages/pool/pool",
+    "pages/category/category",
+    "pages/stats/stats",
+    "pages/mine/mine"
+  ],
+  "window": {
+    "backgroundTextStyle": "light",
+    "navigationBarBackgroundColor": "#FFFFFF",
+    "navigationBarTitleText": "心愿计划",
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#F5F5F5"
+  },
+  
+  "tabBar": {
+    "color": "#999999",
+    "selectedColor": "#5C6BC0",
+    "backgroundColor": "#FFFFFF",
+    "borderStyle": "white",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "首页"
+      },
+      {
+        "pagePath": "pages/wishlist/wishlist",
+        "text": "心愿"
+      },
+      {
+        "pagePath": "pages/pool/pool",
+        "text": "存款池"
+      },
+      {
+        "pagePath": "pages/stats/stats",
+        "text": "统计"
+      },
+      {
+        "pagePath": "pages/mine/mine",
+        "text": "我的"
+      }
+    ]
+  },
+  
+  "sitemapLocation": "sitemap.json",
+  "style": "v2"
+}
