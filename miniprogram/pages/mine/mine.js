@@ -19,15 +19,34 @@ Page({
     this.loadStats();
   },
 
-  loadUserInfo() {
-    // 优先从本地缓存读取，其次 globalData
+  async loadUserInfo() {
+    // 1. 尝试从云端加载资料（跨设备同步）
+    let cloudProfile = null;
+    try {
+      const res = await wx.cloud.callFunction({
+        name: 'login',
+        data: { action: 'getProfile' },
+      });
+      if (res.result && res.result.code === 0) {
+        cloudProfile = res.result.data.profile;
+      }
+    } catch (e) {
+      console.error('云端加载资料失败:', e);
+    }
+
+    // 2. 本地缓存作为 fallback
     const cached = wx.getStorageSync('userProfile');
-    const avatarUrl = cached?.avatarUrl || app.globalData.userInfo?.avatarUrl || '';
-    const nickname = cached?.nickname || app.globalData.userInfo?.nickName || '';
-    const signature = cached?.signature || '';
+
+    // 3. 合并：云端优先，本地兜底
+    const avatarUrl = cloudProfile?.avatarUrl || cached?.avatarUrl || app.globalData.userInfo?.avatarUrl || '';
+    const nickname = cloudProfile?.nickname || cached?.nickname || app.globalData.userInfo?.nickName || '';
+    const signature = cloudProfile?.signature || cached?.signature || '';
     const reminderSubscribed = wx.getStorageSync('reminderSubscribed') || false;
+
     this.setData({ avatarUrl, nickname, signature, reminderSubscribed });
-    // 同步到 globalData
+
+    // 同步到本地缓存 + globalData
+    wx.setStorageSync('userProfile', { avatarUrl, nickname, signature });
     app.globalData.userInfo = { ...app.globalData.userInfo, avatarUrl, nickName: nickname };
   },
 
@@ -72,12 +91,22 @@ Page({
     this.saveProfile({ signature });
   },
 
-  // 持久化用户信息到本地缓存和 globalData
-  saveProfile(updates) {
+  // 持久化用户信息到本地缓存 + 云端
+  async saveProfile(updates) {
     const cached = wx.getStorageSync('userProfile') || {};
     const merged = { ...cached, ...updates };
     wx.setStorageSync('userProfile', merged);
     app.globalData.userInfo = { ...app.globalData.userInfo, avatarUrl: merged.avatarUrl, nickName: merged.nickname };
+
+    // 异步同步到云端（不阻塞 UI）
+    try {
+      await wx.cloud.callFunction({
+        name: 'login',
+        data: { action: 'saveProfile', data: merged },
+      });
+    } catch (e) {
+      console.error('云端保存资料失败:', e);
+    }
   },
 
   async loadStats() {

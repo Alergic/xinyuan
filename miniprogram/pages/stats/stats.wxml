@@ -63,9 +63,9 @@
     </view>
   </view>
 
-  <!-- 标签统计 -->
+  <!-- 存款统计 -->
   <view wx:if="{{tagStatsList.length > 0}}" class="card">
-    <view class="card-title">🏷️ 标签统计</view>
+    <view class="card-title">💰 存款统计</view>
     <view wx:for="{{tagStatsList}}" wx:key="name" class="stat-row">
       <view style="display:flex;align-items:center">
         <view style="width:16rpx;height:16rpx;border-radius:50%;background:{{item.color}};margin-right:10rpx"></view>
@@ -74,6 +74,21 @@
       <view>
         <text class="fw-bold text-primary">¥{{util.formatMoney(item.total)}}</text>
         <text class="text-light ml-10" style="font-size:22rpx">{{item.count}}笔</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 分类统计 -->
+  <view wx:if="{{categoryStatsList.length > 0}}" class="card">
+    <view class="card-title">📁 分类统计</view>
+    <view wx:for="{{categoryStatsList}}" wx:key="name" class="stat-row">
+      <view style="display:flex;align-items:center">
+        <view style="width:16rpx;height:16rpx;border-radius:50%;background:{{item.color}};margin-right:10rpx"></view>
+        <text class="text-secondary">{{item.name}}</text>
+      </view>
+      <view>
+        <text class="fw-bold text-primary">¥{{util.formatMoney(item.total_target)}}</text>
+        <text class="text-light ml-10" style="font-size:22rpx">{{item.count}}个</text>
       </view>
     </view>
   </view>

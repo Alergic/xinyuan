@@ -32,7 +32,7 @@ async function checkAndNotify() {
     const items = await fetchAll(
       db.collection('wishlist_item')
         .where({
-          status: db.command.in(['planning', 'paused']),
+          status: db.command.in(['planning', 'paused', 'saving']),
         })
     );
 

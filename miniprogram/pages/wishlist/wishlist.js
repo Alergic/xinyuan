@@ -13,7 +13,9 @@ Page({
       sort: 'updated_at',
       order: 'desc',
     },
+    searchText: '',
     searchKeyword: '',
+    searchTimer: null,
     statusLabel: '全部状态',
     categoryLabel: '全部分类',
     sortLabel: '最近更新',
@@ -78,14 +80,9 @@ Page({
     try {
       const filters = this.data.filters;
 
-      // 排序映射 + 派生状态处理
-      // saving/buyable/overdue 是 display_status 派生值，服务端 listItemsEnriched 已支持
-      // 此处保留客户端兼容：传 all + 大 pageSize，防止云函数未部署时回退
+      // 排序映射
+      // display_status 派生值（planning/saving/buyable/overdue）由服务端 listItemsEnriched 计算并筛选
       const serverFilters = { ...filters };
-      if (['planning', 'saving', 'buyable', 'overdue'].includes(serverFilters.status)) {
-        serverFilters.status = 'all';
-        serverFilters.pageSize = 500;
-      }
       if (serverFilters.sort === 'current_price_asc') {
         serverFilters.sort = 'current_price';
         serverFilters.order = 'asc';
@@ -106,54 +103,18 @@ Page({
 
       let items = res.result.data.items || [];
 
-      // 客户端轻量后处理：计算进度、展示状态、优先级文本
+      // 客户端轻量后处理：只做 WXML 展示需要的文本映射
+      // progress / display_status 由服务端 listItemsEnriched 统一计算并返回
+      // 派生状态筛选（planning/saving/buyable/overdue）也由服务端完成
       const statusMap = app.globalData.statusMap;
       const priorityMap = app.globalData.priorityMap;
       for (let item of items) {
-        // 计算存款进度
-        item.progress = util.calcProgress(item.total_saved || 0, item.saving_target_amount);
-
-        // 状态文本
-        item.status_text = statusMap[item.status] || item.status;
-
-        // 优先级文本
+        item.status_text = statusMap[item.display_status] || statusMap[item.status] || item.status;
         item.priority_text = priorityMap[item.priority] || '';
-
-        // Deadline 处理 + display_status 计算
         if (item.deadline) {
           item.days_left = util.getDaysRemaining(item.deadline);
           item.deadline_text = util.formatDate(item.deadline);
         }
-
-        // display_status 计算规则：
-        // purchased/abandoned/paused — 终态，原样展示
-        // planning — 初始状态，与其他非终态一样自动推导
-        if (item.status === 'purchased' || item.status === 'abandoned' || item.status === 'paused') {
-          item.display_status = item.status;
-        } else {
-          // 自动判断：overdue > buyable > saving > planning
-          const targetPercent = item.target_save_percent || 100;  // 兼容旧数据无此字段
-          if (item.deadline && item.days_left < 0) {
-            item.display_status = 'overdue';
-          } else if (
-            (item.target_price && item.current_price <= item.target_price) ||
-            (targetPercent > 0 && item.progress >= targetPercent)
-          ) {
-            item.display_status = 'buyable';
-          } else if ((item.total_saved || 0) > 0) {
-            item.display_status = 'saving';
-          } else {
-            item.display_status = 'planning';
-          }
-        }
-
-        // display_status 文本
-        item.status_text = statusMap[item.display_status] || item.status_text;
-      }
-
-      // 客户端筛选：display_status 派生状态（planning/saving/buyable/overdue）
-      if (['planning', 'saving', 'buyable', 'overdue'].includes(filters.status)) {
-        items = items.filter(i => i.display_status === filters.status);
       }
 
       this.setData({ items, activeFilter: null });
@@ -209,19 +170,23 @@ Page({
     this.loadItems();
   },
 
-  // 搜索
-  onSearch() {
-    wx.showModal({
-      title: '搜索心愿',
-      editable: true,
-      placeholderText: '输入物品名称',
-      success: (res) => {
-        if (res.confirm && res.content) {
-          this.setData({ searchKeyword: res.content });
-          this.loadItems();
-        }
-      },
-    });
+  // 搜索输入（500ms 防抖）
+  onSearchInput(e) {
+    const value = e.detail.value;
+    this.setData({ searchText: value });
+
+    if (this.data.searchTimer) clearTimeout(this.data.searchTimer);
+    this.data.searchTimer = setTimeout(() => {
+      this.setData({ searchKeyword: value });
+      this.loadItems();
+    }, 500);
+  },
+
+  // 清除搜索
+  onClearSearch() {
+    if (this.data.searchTimer) clearTimeout(this.data.searchTimer);
+    this.setData({ searchText: '', searchKeyword: '' });
+    this.loadItems();
   },
 
   // 跳转

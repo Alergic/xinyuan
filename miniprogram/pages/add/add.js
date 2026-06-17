@@ -21,7 +21,14 @@ Page({
       product_url: '',
       description: '',
       target_save_percent: 100,
+      auto_save_enabled: false,
+      auto_save_amount: '',
+      auto_save_frequency: 'weekly',
     },
+    percentAmountText: '',
+    autoSaveFrequencies: ['每天', '每周', '每月'],
+    autoSaveFreqIndex: 1,
+    showAutoSave: false,
   },
 
   onLoad(options) {
@@ -87,6 +94,27 @@ Page({
             target_save_percent: item.target_save_percent || 100,
           },
         });
+
+        // 加载已有的定期存入计划
+        if (id) {
+          try {
+            const planRes = await wx.cloud.callFunction({
+              name: 'saving',
+              data: { action: 'getAutoSavePlan', data: { item_id: id } },
+            });
+            const plan = planRes.result && planRes.result.code === 0 ? planRes.result.data.plan : null;
+            if (plan && plan.enabled) {
+              const freqMap = { daily: 0, weekly: 1, monthly: 2 };
+              this.setData({
+                showAutoSave: true,
+                'form.auto_save_enabled': true,
+                'form.auto_save_amount': String(plan.amount || ''),
+                'form.auto_save_frequency': plan.frequency || 'weekly',
+                autoSaveFreqIndex: freqMap[plan.frequency] || 1,
+              });
+            }
+          } catch (e) { /* 无已有计划，忽略 */ }
+        }
       }
     } catch (err) {
       console.error('加载物品失败:', err);
@@ -97,6 +125,9 @@ Page({
   onFieldChange(e) {
     const { field } = e.currentTarget.dataset;
     this.setData({ [`form.${field}`]: e.detail.value });
+    if (field === 'current_price' || field === 'target_price') {
+      this.updatePercentAmount();
+    }
   },
 
   // 分类选择
@@ -112,6 +143,22 @@ Page({
   // 目标存款比例
   onPercentChange(e) {
     this.setData({ 'form.target_save_percent': e.detail.value });
+    this.updatePercentAmount();
+  },
+
+  // 计算并更新目标比例对应的金额
+  updatePercentAmount() {
+    const { form } = this.data;
+    const targetPrice = form.target_price ? parseFloat(form.target_price) : null;
+    const currentPrice = form.current_price ? parseFloat(form.current_price) : 0;
+    const effectiveTarget = targetPrice || currentPrice;
+    const percent = form.target_save_percent || 100;
+    if (effectiveTarget > 0) {
+      const amount = (effectiveTarget * percent / 100);
+      this.setData({ percentAmountText: `当前比例对应 ¥${amount.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}` });
+    } else {
+      this.setData({ percentAmountText: '' });
+    }
   },
 
   // 优先级选择
@@ -135,6 +182,31 @@ Page({
     });
   },
 
+  // 定期存入：展开/收起
+  toggleAutoSave() {
+    this.setData({ showAutoSave: !this.data.showAutoSave });
+  },
+
+  // 定期存入：启用开关
+  onAutoSaveSwitch(e) {
+    this.setData({ 'form.auto_save_enabled': e.detail.value });
+  },
+
+  // 定期存入：金额输入
+  onAutoSaveAmount(e) {
+    this.setData({ 'form.auto_save_amount': e.detail.value });
+  },
+
+  // 定期存入：周期选择
+  onAutoSaveFreqChange(e) {
+    const index = parseInt(e.detail.value);
+    const frequencies = ['daily', 'weekly', 'monthly'];
+    this.setData({
+      autoSaveFreqIndex: index,
+      'form.auto_save_frequency': frequencies[index],
+    });
+  },
+
   // 上传图片（追加到列表，最多 3 张）
   uploadImage() {
     const remaining = 3 - this.data.imageUrls.length;
@@ -147,21 +219,23 @@ Page({
       success: async (res) => {
         wx.showLoading({ title: '上传中...' });
         try {
-          const uploaded = [];
-          for (const file of res.tempFiles) {
-            const cloudRes = await wx.cloud.uploadFile({
-              cloudPath: `images/${Date.now()}_${Math.random().toString(36).substring(2, 8)}.jpg`,
-              filePath: file.tempFilePath,
-            });
-            uploaded.push(cloudRes.fileID);
-          }
+          // 并行上传，减少总等待时间
+          const uploadResults = await Promise.all(
+            res.tempFiles.map(file =>
+              wx.cloud.uploadFile({
+                cloudPath: `images/${Date.now()}_${Math.random().toString(36).substring(2, 8)}.jpg`,
+                filePath: file.tempFilePath,
+              })
+            )
+          );
+          const uploaded = uploadResults.map(r => r.fileID);
           const imageUrls = [...this.data.imageUrls, ...uploaded];
           this.setData({ imageUrls });
           wx.hideLoading();
           util.showToast(`已上传 ${uploaded.length} 张`, 'success');
         } catch (err) {
           wx.hideLoading();
-          util.showToast('上传失败');
+          util.showToast('上传失败，请重试');
         }
       },
     });
@@ -209,18 +283,47 @@ Page({
         deadline: form.deadline ? `${form.deadline}T23:59:59` : null,
       };
 
+      let newItemId = null;
+
       if (this.data.isEdit) {
         // 编辑模式
         await wx.cloud.callFunction({
           name: 'wishlist',
           data: { action: 'update', data: { id: this.data.editId, ...payload } },
         });
+        newItemId = this.data.editId;
       } else {
         // 新增模式
-        await wx.cloud.callFunction({
+        const addResult = await wx.cloud.callFunction({
           name: 'wishlist',
           data: { action: 'add', data: payload },
         });
+        if (addResult.result && addResult.result.code === 0 && addResult.result.data && addResult.result.data._id) {
+          newItemId = addResult.result.data._id;
+        }
+      }
+
+      // 如果启用了定期存入，创建/更新 auto_save_plan
+      if (newItemId && form.auto_save_enabled && form.auto_save_amount) {
+        const autoAmount = parseFloat(form.auto_save_amount);
+        if (autoAmount > 0) {
+          try {
+            await wx.cloud.callFunction({
+              name: 'saving',
+              data: {
+                action: 'setAutoSave',
+                data: {
+                  item_id: newItemId,
+                  amount: autoAmount,
+                  frequency: form.auto_save_frequency || 'weekly',
+                },
+              },
+            });
+          } catch (e) {
+            console.error('设置定期存入失败:', e);
+            // 非致命：心愿已创建，定期存入设置失败不阻塞流程
+          }
+        }
       }
 
       wx.hideLoading();

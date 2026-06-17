@@ -31,27 +31,8 @@ Page({
       const records = (res.result.data.records || []).map(r => ({
         ...r,
         saved_at_text: util.formatDateTime(r.saved_at),
+        // item_name 和 item_target 由云函数 listSavings 返回（服务端查询，不受客户端权限限制）
       }));
-
-      // 批量获取专项存款关联的物品名称和存款目标
-      const itemIds = [...new Set(
-        records.filter(r => r.item_id).map(r => r.item_id)
-      )];
-      let itemMap = {};
-      if (itemIds.length > 0) {
-        const db = wx.cloud.database();
-        const _ = db.command;
-        try {
-          const itemRes = await db.collection('wishlist_item')
-            .where({ _id: _.in(itemIds) })
-            .get();
-          for (const item of itemRes.data) {
-            itemMap[item._id] = item;
-          }
-        } catch (e) {
-          console.error('批量获取物品信息失败:', e);
-        }
-      }
 
       // 计算汇总
       let totalDedicated = 0;
@@ -59,9 +40,8 @@ Page({
 
       for (const r of records) {
         if (r.item_id) {
-          const item = itemMap[r.item_id];
-          r.item_name = item ? item.name : '已删除';
-          r.item_target = item ? item.saving_target_amount : 0;
+          // item_name 和 item_target 由云函数返回，客户端只做 fallback
+          r.item_name = r.item_name || '已删除';
         } else {
           r.item_name = '';
           r.item_target = 0;

@@ -16,6 +16,7 @@ Page({
       month_new_items: 0,
     },
     tagStatsList: [],
+    categoryStatsList: [],
     totalProgress: '0',
     progressColor: '#999',
   },
@@ -49,7 +50,24 @@ Page({
         .map(([name, data]) => ({ name, ...data }))
         .sort((a, b) => b.total - a.total);
 
-      this.setData({ stats, tagStatsList, totalProgress, progressColor });
+      // 分类统计：加载分类名称，将 category_id 映射为可读名称+颜色
+      let catNameMap = { 'default': { name: '未分类', color: '#999' } };
+      try {
+        const catRes = await wx.cloud.callFunction({ name: 'category', data: { action: 'list' } });
+        const categories = catRes.result.data || [];
+        for (const c of categories) {
+          catNameMap[c._id] = { name: c.name, color: c.color || '#5C6BC0' };
+        }
+      } catch (e) { /* ignore */ }
+
+      const categoryStatsList = Object.entries(stats.category_stats || {})
+        .map(([catId, data]) => {
+          const info = catNameMap[catId] || { name: catId, color: '#999' };
+          return { name: info.name, color: info.color, ...data };
+        })
+        .sort((a, b) => b.count - a.count);
+
+      this.setData({ stats, tagStatsList, categoryStatsList, totalProgress, progressColor });
     } catch (err) {
       console.error('加载统计失败:', err);
     }

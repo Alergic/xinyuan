@@ -60,12 +60,11 @@ Page({
   editTag(e) {
     const tag = e.currentTarget.dataset.tag;
     wx.showActionSheet({
-      itemList: ['修改名称', '修改颜色', '删除标签'],
+      itemList: ['修改名称', '修改颜色'],
       success: async (res) => {
         switch (res.tapIndex) {
           case 0: this.renameTag(tag); break;
           case 1: this.recolorTag(tag); break;
-          case 2: this.confirmDelete(tag); break;
         }
       },
     });
@@ -104,8 +103,9 @@ Page({
   },
 
   recolorTag(tag) {
-    const colors = ['#FF6B6B', '#FFA726', '#66BB6A', '#42A5F5', '#AB47BC', '#EC407A', '#26C6DA', '#FF7043', '#78909C', '#8D6E63'];
-    const itemList = ['🔴 红', '🟠 橙', '🟢 绿', '🔵 蓝', '🟣 紫', '💗 粉', '🩵 青', '🔥 深橙', '⚫ 灰', '🟤 棕'];
+    // wx.showActionSheet 最多支持 6 项，精选 6 个区分度高的颜色
+    const colors = ['#FF6B6B', '#FFA726', '#66BB6A', '#42A5F5', '#AB47BC', '#78909C'];
+    const itemList = ['🔴 红', '🟠 橙', '🟢 绿', '🔵 蓝', '🟣 紫', '⚫ 灰'];
     wx.showActionSheet({
       itemList,
       success: async (res) => {
@@ -118,12 +118,22 @@ Page({
           if (result.result.code === 0) {
             util.showToast('颜色已更新', 'success');
             this.loadTags();
+          } else {
+            util.showToast(result.result.msg || '更新失败');
           }
         } catch (err) {
           util.showToast('更新失败');
         }
       },
+      fail: () => {
+        util.showToast('选择失败');
+      },
     });
+  },
+
+  // 🗑 按钮点击入口（从 event 提取 tag）
+  onDeleteTag(e) {
+    this.confirmDelete(e.currentTarget.dataset.tag);
   },
 
   confirmDelete(tag) {
@@ -149,5 +159,41 @@ Page({
         }
       },
     });
+  },
+
+  // 排序：上移
+  moveUp(e) {
+    const index = e.currentTarget.dataset.index;
+    if (index === 0) return;
+    this.swapSort(index, index - 1);
+  },
+
+  // 排序：下移
+  moveDown(e) {
+    const index = e.currentTarget.dataset.index;
+    if (index >= this.data.tags.length - 1) return;
+    this.swapSort(index, index + 1);
+  },
+
+  // 排序：交换两个标签的位置
+  async swapSort(fromIdx, toIdx) {
+    const list = [...this.data.tags];
+    const a = list[fromIdx];
+    const b = list[toIdx];
+    const aSort = a.sort_order != null ? a.sort_order : fromIdx;
+    const bSort = b.sort_order != null ? b.sort_order : toIdx;
+
+    try {
+      await Promise.all([
+        wx.cloud.callFunction({ name: 'saving', data: { action: 'updateTag', data: { id: a._id, sort_order: bSort } } }),
+        wx.cloud.callFunction({ name: 'saving', data: { action: 'updateTag', data: { id: b._id, sort_order: aSort } } }),
+      ]);
+      a.sort_order = bSort;
+      b.sort_order = aSort;
+      [list[fromIdx], list[toIdx]] = [list[toIdx], list[fromIdx]];
+      this.setData({ tags: list });
+    } catch (err) {
+      util.showToast('排序失败');
+    }
   },
 });

@@ -28,6 +28,47 @@
       <view class="percent-slider">
         <slider min="10" max="100" step="5" value="{{form.target_save_percent}}" bindchange="onPercentChange" show-value block-size="18" activeColor="#5C6BC0" backgroundColor="#EBEBEB" />
       </view>
+      <text wx:if="{{percentAmountText}}" class="text-light" style="font-size:22rpx;margin-top:4rpx">{{percentAmountText}}</text>
+    </view>
+
+    <!-- 定期存入（可折叠，可选） -->
+    <view class="form-group">
+      <view class="form-label" bindtap="toggleAutoSave">
+        <text>⏰ 定期存入 <text class="text-light">（可选）</text></text>
+        <text class="text-light" style="float:right">{{showAutoSave ? '▲ 收起' : '▼ 展开'}}</text>
+      </view>
+      <text wx:if="{{!showAutoSave}}" class="text-light" style="font-size:22rpx">
+        设置后可从通用池定期自动存入此心愿
+      </text>
+    </view>
+
+    <view wx:if="{{showAutoSave}}" class="card" style="margin-top:-20rpx">
+      <!-- 启用开关 -->
+      <view class="form-group">
+        <view class="flex-between">
+          <text class="form-label">启用定期存入</text>
+          <switch checked="{{form.auto_save_enabled}}" bindchange="onAutoSaveSwitch" color="#5C6BC0" />
+        </view>
+      </view>
+
+      <view wx:if="{{form.auto_save_enabled}}">
+        <!-- 每次存入金额 -->
+        <view class="form-group">
+          <view class="form-label">每次存入金额</view>
+          <input class="form-input" type="digit" placeholder="从通用池自动存入的金额" value="{{form.auto_save_amount}}" bindinput="onAutoSaveAmount" />
+        </view>
+
+        <!-- 存入周期 -->
+        <view class="form-group">
+          <view class="form-label">存入周期</view>
+          <picker mode="selector" range="{{autoSaveFrequencies}}" value="{{autoSaveFreqIndex}}" bindchange="onAutoSaveFreqChange">
+            <view class="picker-display">
+              <text>{{autoSaveFrequencies[autoSaveFreqIndex]}}</text>
+              <text class="text-light">›</text>
+            </view>
+          </picker>
+        </view>
+      </view>
     </view>
 
     <!-- 分类（可选） -->

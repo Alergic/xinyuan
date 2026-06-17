@@ -153,6 +153,7 @@ page {
 .tag-abandoned { background: #EEEEEE; color: #9E9E9E; }
 .tag-paused { background: #FFF8E1; color: #F9A825; }
 .tag-overdue { background: #FFEBEE; color: #E53935; }
+.tag-category { background: #E8EAF6; color: #5C6BC0; }
 
 /* === 价格文字 === */
 .price {

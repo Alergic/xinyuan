@@ -45,10 +45,12 @@
 
 | 约定 | 说明 |
 |------|------|
-| `display_status` 是客户端派生值 | DB 中 `status` 只有 `planning/purchased/paused/abandoned`。`saving/buyable/overdue` 由 JS 计算 |
+| `display_status` 由服务端统一计算 | 原为客户端派生值，现在 `listItemsEnriched` 返回 `display_status` 字段。客户端不再自行计算（避免前后端不一致） |
 | `pool_allocation` 只能云函数查询 | 客户端 SDK 直查受权限限制会静默返回空 → 用 `saving.listAllocations` |
 | 图片存储 | `image_urls` 数组（新）+ `image_url` 首图兼容（旧） |
 | 定期存入 | 独立集合 `auto_save_plan`（非 wishlist_item 字段），upsert 模式，软停用 |
+| 用户资料持久化 | `user_profile` 集合（cloud），从 `login.getProfile/saveProfile` 读写，本地 Storage 为 fallback |
+| deadline 存储 | 统一使用 Date 对象（`new Date(deadline)`），不再存字符串 |
 | 云函数模板 | 见 [6.2 节](#62-新增云函数时的规范) |
 
 ---
@@ -66,7 +68,7 @@ xinyuan/
 │   ├── stats/         # 数据统计
 │   ├── notify/        # Deadline 订阅消息提醒
 │   ├── category/      # 分类管理
-│   └── login/         # 微信登录
+│   └── login/         # 微信登录 + 用户资料
 ├── miniprogram/
 │   ├── utils/
 │   │   ├── util.js / util.wxs / dataLoader.js
@@ -100,6 +102,7 @@ xinyuan/
 | `category` | 分类 | `user_id`, `name`, `color` |
 | `task` | 任务清单 | `user_id`, `item_id`, `title`, `is_completed` |
 | `purchase_record` | 购买记录 | `user_id`, `item_id`, `final_price` |
+| `user_profile` | 用户资料 | `user_id`, `avatarUrl`, `nickname`, `signature` |
 
 ---
 
@@ -108,17 +111,20 @@ xinyuan/
 ### 当前迭代
 
 - [ ] ⚠️ 订阅消息模板 ID（微信审核中）— 替换 `notify/index.js` 和 `mine.js` 中的 `YOUR_TEMPLATE_ID_HERE`
-- [ ] 实时搜索栏（当前为模态弹窗 → 改为列表顶部常驻搜索框）
+- [x] 实时搜索栏（当前为模态弹窗 → 改为列表顶部常驻搜索框）✅
 - [ ] 加载骨架屏
 - [ ] 空状态插图（文案已有）
-- [ ] 分类拖拽排序
-- [ ] 任务拖拽排序
+- [x] 分类排序（▲▼ 按钮）✅
+- [x] 任务排序（▲▼ 按钮）✅
 
 ### 技术债务
 
 - [ ] `wishlist_item` 数据库复合索引确认
 - [ ] `stats` 云函数全量计算 → 加缓存
 - [ ] `pool.js` openid 轮询 → 事件驱动
+- [ ] 7 份 common.js 副本去重（每个云函数目录各一份）
+- [ ] 存款流程进一步优化（池分配也改为表单）
+- [ ] DB 索引创建（WeChat 云开发控制台手动操作）
 
 ---
 
@@ -132,8 +138,8 @@ xinyuan/
 4. **`Promise.all`** 单点故障 → 用 `Loader` 独立 try-catch
 5. **`this.data`** 在并行 async 中可能过期 → `Loader.dependsOn` 或 `wx.nextTick`
 6. **`deadline`** 可能被 DB 反序列化为 Date 对象 → 用 `util.formatDate()`
-7. **display_status 派生值**（saving/buyable/overdue）不能传给后端 `where.status`，统计云函数必须同样计算
-8. **客户端直查 DB** 可能因权限/索引静默返回空 → 优先走云函数
+7. **display_status 派生值** 现在由服务端 `listItemsEnriched` 统一计算并返回 `display_status` 字段。客户端只做文本映射，不再复制计算逻辑。新增了排序 + 分页支持
+8. **客户端直查 DB** 已消除：`savings.js` 的 `wishlist_item` 客户端直查已改为云函数返回 `item_name` + `item_target`
 9. **云函数调用必须检查 `result.code`** — 不 throw，失败也显示成功
 10. **`box-sizing: border-box` 不继承** — 每个需要精确宽度的元素显式设置
 11. **`target_save_percent`** 旧数据无此字段 → 必须 `|| 100` fallback
@@ -178,7 +184,7 @@ exports.main = async (event, context) => {
 
 | 日期 | 轮次 | 要点 |
 |------|------|------|
-| 06-17 | 七 | 存款标签体验：确认弹窗显示标签名、chip 用真实颜色、视觉优化、pool 页加标签 |
+| 06-17 | 八 | 3轮优化：notify+saving/login重试/并行上传/deleteTag精准/合并标签查询/精准刷新/客户端直查消除/deadline Date标准化/分类去重/display_status统一/头像云端持久化/派生状态分页/内嵌搜索栏/存款表单 |
 | 06-17 | 六 | 5.1 完善（图标/标签/提醒/定时器）、筛选修复（planning 派生/wx.nextTick 时序）、Mine 布局 |
 | 06-17 | 五 | 折叠、定期存入计划（auto_save_plan 集合 + 预计完成日）、分类跳转、空状态文案 |
 | 06-17 | 四 | 统计修复（display_status 对齐/box-sizing）、分配记录云函数查询、目标存款比例滑块 |

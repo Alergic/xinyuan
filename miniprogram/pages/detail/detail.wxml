@@ -24,6 +24,33 @@
     </view>
   </view>
 
+  <!-- 时间信息 -->
+  <view class="card" wx:if="{{item.deadline || estimatedDays !== null || createdAtText}}">
+    <view class="card-title">📅 时间信息</view>
+    <view wx:if="{{createdAtText}}" class="flex-between mb-10">
+      <text class="text-secondary">创建时间</text>
+      <text class="text-secondary">{{createdAtText}}</text>
+    </view>
+    <view wx:if="{{item.deadline}}" class="flex-between mb-10">
+      <text class="text-secondary">Deadline</text>
+      <text class="{{daysLeft < 0 ? 'text-danger' : (daysLeft <= 7 ? 'text-warning' : '')}} fw-bold">
+        {{item.deadline_text}} {{daysLeft > 0 ? '(剩' + daysLeft + '天)' : '(已逾期)'}}
+      </text>
+    </view>
+    <view wx:if="{{estimatedDays !== null}}" class="flex-between mb-10">
+      <text class="text-secondary">预计完成（仅历史存款）</text>
+      <text class="text-primary fw-bold" style="font-size:24rpx">
+        {{estimatedDays === 0 ? '已达成 🎉' : (estimatedDays > 0 ? '约' + estimatedDays + '天后' : '暂无足够数据')}}
+      </text>
+    </view>
+    <view wx:if="{{estimatedDaysWithAuto !== null && autoSavePlan && autoSavePlan.enabled}}" class="flex-between">
+      <text class="text-secondary">预计完成（含定期存入）</text>
+      <text class="text-success fw-bold" style="font-size:24rpx">
+        {{estimatedDaysWithAuto === 0 ? '已达成 🎉' : (estimatedDaysWithAuto > 0 ? '约' + estimatedDaysWithAuto + '天后' : '余额不足以覆盖')}}
+      </text>
+    </view>
+  </view>
+
   <!-- 价格信息 -->
   <view class="card">
     <view class="card-title">💰 价格信息</view>
@@ -99,8 +126,44 @@
       </view>
     </view>
     <view class="detail-actions">
-      <button class="btn btn-primary btn-small" bindtap="addSaving">+ 专项存款</button>
+      <button class="btn btn-primary btn-small" bindtap="toggleSavingForm">{{showSavingForm ? '收起存款表单' : '+ 专项存款'}}</button>
       <button class="btn btn-outline btn-small" bindtap="allocateFromPool">从通用池分配</button>
+    </view>
+
+    <!-- 专项存款表单（展开时显示，替代多步弹窗） -->
+    <view wx:if="{{showSavingForm}}" class="saving-form-card">
+      <text class="saving-form-title">新增专项存款</text>
+
+      <!-- 金额 -->
+      <view class="form-field">
+        <text class="form-label">存入金额 <text class="text-danger">*</text></text>
+        <input class="form-input" type="digit" placeholder="输入金额" value="{{savingForm.amount}}" bindinput="onSavingFieldChange" data-field="amount" focus="{{true}}" />
+      </view>
+
+      <!-- 备注 -->
+      <view class="form-field">
+        <text class="form-label">备注（可选）</text>
+        <input class="form-input" placeholder="如：少点了一次外卖、退款到账等" value="{{savingForm.note}}" bindinput="onSavingFieldChange" data-field="note" maxlength="50" />
+      </view>
+
+      <!-- 标签选择 -->
+      <view wx:if="{{availableTags.length > 0}}" class="form-field">
+        <text class="form-label">标签（可选）</text>
+        <view class="tag-chips">
+          <view wx:for="{{availableTags}}" wx:key="_id"
+            class="tag-chip-select {{savingForm.tagId === item._id ? 'tag-chip-selected' : ''}}"
+            style="color:{{item.color}};background:{{item.color}}18;border-color:{{item.color}}"
+            bindtap="onSelectSavingTag" data-id="{{item._id}}" data-name="{{item.name}}">
+            {{item.name}}
+          </view>
+        </view>
+      </view>
+
+      <!-- 操作按钮 -->
+      <view class="form-actions">
+        <button class="btn btn-primary btn-small" bindtap="submitSaving">确认存入</button>
+        <button class="btn btn-outline btn-small" bindtap="toggleSavingForm">取消</button>
+      </view>
     </view>
 
     <!-- 定期存入计划 -->
@@ -182,34 +245,15 @@
           <text class="{{item.is_completed ? 'text-through' : ''}}">{{item.title}}</text>
           <text wx:if="{{item.deadline}}" class="text-light" style="font-size:22rpx">截止: {{item.deadline_text}}</text>
         </view>
+        <view class="sort-btns">
+          <view class="sort-btn {{index === 0 ? 'sort-btn-disabled' : ''}}" bindtap="moveTaskUp" data-index="{{index}}">▲</view>
+          <view class="sort-btn {{index === tasks.length - 1 ? 'sort-btn-disabled' : ''}}" bindtap="moveTaskDown" data-index="{{index}}">▼</view>
+        </view>
         <text class="text-light task-delete" bindtap="deleteTask" data-id="{{item._id}}">🗑</text>
       </view>
     </view>
     <view wx:else class="empty-state">
       <text class="text-light" style="font-size:24rpx">暂无任务，添加任务帮助达成目标</text>
-    </view>
-  </view>
-
-  <!-- Deadline + 预计完成日 -->
-  <view class="card" wx:if="{{item.deadline || estimatedDays !== null}}">
-    <view class="card-title">📅 时间信息</view>
-    <view wx:if="{{item.deadline}}" class="flex-between mb-10">
-      <text class="text-secondary">Deadline</text>
-      <text class="{{daysLeft < 0 ? 'text-danger' : (daysLeft <= 7 ? 'text-warning' : '')}} fw-bold">
-        {{item.deadline_text}} {{daysLeft > 0 ? '(剩' + daysLeft + '天)' : '(已逾期)'}}
-      </text>
-    </view>
-    <view wx:if="{{estimatedDays !== null}}" class="flex-between mb-10">
-      <text class="text-secondary">预计完成（仅历史存款）</text>
-      <text class="text-primary fw-bold" style="font-size:24rpx">
-        {{estimatedDays === 0 ? '已达成 🎉' : (estimatedDays > 0 ? '约' + estimatedDays + '天后' : '暂无足够数据')}}
-      </text>
-    </view>
-    <view wx:if="{{estimatedDaysWithAuto !== null && autoSavePlan && autoSavePlan.enabled}}" class="flex-between">
-      <text class="text-secondary">预计完成（含定期存入）</text>
-      <text class="text-success fw-bold" style="font-size:24rpx">
-        {{estimatedDaysWithAuto === 0 ? '已达成 🎉' : (estimatedDaysWithAuto > 0 ? '约' + estimatedDaysWithAuto + '天后' : '余额不足以覆盖')}}
-      </text>
     </view>
   </view>
 

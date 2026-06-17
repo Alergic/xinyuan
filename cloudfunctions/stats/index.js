@@ -89,7 +89,7 @@ async function getStats(openid) {
 
   const monthNewItems = items.filter(i => new Date(i.created_at) >= monthStart).length;
 
-  // 分类统计
+  // 分类统计（含未分类，key 为 category_id）
   const categoryStats = {};
   for (const item of items) {
     const catId = item.category_id || 'default';
@@ -101,7 +101,7 @@ async function getStats(openid) {
     if (item.status === 'purchased') categoryStats[catId].completed++;
   }
 
-  // 标签统计：各标签下的存款总额
+  // 标签统计：各标签下的存款总额（含未分类记录）
   const [allSavings, tags] = await Promise.all([
     fetchAll(db.collection('saving_record').where({ user_id: openid })),
     fetchAll(db.collection('deposit_tag').where({ user_id: openid }), 100),
@@ -116,7 +116,13 @@ async function getStats(openid) {
 
   const tagStats = {};
   for (const r of allSavings) {
-    if (!r.tag_ids || r.tag_ids.length === 0) continue;
+    if (!r.tag_ids || r.tag_ids.length === 0) {
+      // 未分类存款记录
+      if (!tagStats['未分类']) tagStats['未分类'] = { count: 0, total: 0, color: '#999' };
+      tagStats['未分类'].count++;
+      tagStats['未分类'].total += r.amount;
+      continue;
+    }
     for (const tid of r.tag_ids) {
       const name = tagMap[tid] || '未知';
       const color = tagColorMap[tid] || '#5C6BC0';

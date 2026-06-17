@@ -67,17 +67,41 @@ App({
   /**
    * 获取用户 openid（云函数方式，无需后端服务器）
    */
-  getOpenId: function () {
+  getOpenId: function (retryCount) {
     const that = this;
-    wx.cloud.callFunction({
-      name: 'login',
-      success: res => {
-        that.globalData.openid = res.result.openid;
-        console.log('登录成功, openid:', res.result.openid);
-      },
-      fail: err => {
-        console.error('登录失败:', err);
-      }
-    });
+    const maxRetries = retryCount != null ? retryCount : 3;
+    let attempts = 0;
+
+    const tryLogin = () => {
+      attempts++;
+      wx.cloud.callFunction({
+        name: 'login',
+        success: res => {
+          if (res.result && res.result.openid) {
+            that.globalData.openid = res.result.openid;
+            console.log('登录成功, openid:', res.result.openid);
+          } else if (attempts < maxRetries) {
+            console.warn(`登录返回异常，第${attempts}次重试...`);
+            setTimeout(tryLogin, 1000 * attempts);
+          } else {
+            console.error('登录失败：已达最大重试次数');
+            // 延迟重试 — 给用户机会手动刷新
+            setTimeout(() => that.getOpenId(1), 5000);
+          }
+        },
+        fail: err => {
+          console.error(`登录失败 (${attempts}/${maxRetries}):`, err);
+          if (attempts < maxRetries) {
+            setTimeout(tryLogin, 1500 * attempts);
+          } else {
+            console.error('登录失败：已达最大重试次数');
+            // 提示用户检查网络
+            wx.showToast({ title: '网络异常，请稍后重试', icon: 'none', duration: 3000 });
+            setTimeout(() => that.getOpenId(1), 8000);
+          }
+        }
+      });
+    };
+    tryLogin();
   },
 });

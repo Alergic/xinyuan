@@ -1,3 +1,36 @@
+/* 搜索栏 */
+.search-row {
+  padding: 12rpx 0 8rpx;
+  position: sticky;
+  top: 0;
+  z-index: 11;
+  background: var(--color-bg);
+}
+.search-input-wrap {
+  display: flex;
+  align-items: center;
+  background: var(--color-card);
+  border-radius: 32rpx;
+  padding: 0 24rpx;
+  box-shadow: var(--shadow);
+}
+.search-icon {
+  font-size: 28rpx;
+  margin-right: 12rpx;
+  flex-shrink: 0;
+}
+.search-input {
+  flex: 1;
+  height: 72rpx;
+  font-size: 28rpx;
+}
+.search-clear {
+  font-size: 32rpx;
+  color: var(--color-text-light);
+  padding: 8rpx;
+  flex-shrink: 0;
+}
+
 /* 筛选栏 */
 .filter-bar {
   display: flex;

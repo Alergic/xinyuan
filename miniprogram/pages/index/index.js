@@ -33,32 +33,29 @@ Page({
     let stats = this.data.stats;
     let items = [];
 
-    // 分别调用，避免一个失败拖垮全部
-    try {
-      const statsRes = await wx.cloud.callFunction({ name: 'stats' });
-      console.log('stats 云函数返回:', statsRes);
-      if (statsRes.result && statsRes.result.code === 0) {
-        stats = statsRes.result.data;
-      } else {
-        console.error('stats 返回异常:', statsRes);
-      }
-    } catch (err) {
-      console.error('stats 云函数调用失败:', err);
-    }
-
-    try {
-      const wishlistRes = await wx.cloud.callFunction({
+    // 并行调用 stats + wishlist，减少等待时间
+    const [statsResult, wishlistResult] = await Promise.all([
+      wx.cloud.callFunction({ name: 'stats' }).catch(err => ({ _error: err })),
+      wx.cloud.callFunction({
         name: 'wishlist',
         data: { action: 'listEnriched', data: { pageSize: 50 } },
-      });
-      console.log('wishlist 云函数返回:', wishlistRes);
-      if (wishlistRes.result && wishlistRes.result.code === 0) {
-        items = wishlistRes.result.data.items || [];
-      } else {
-        console.error('wishlist 返回异常:', wishlistRes);
-      }
-    } catch (err) {
-      console.error('wishlist 云函数调用失败:', err);
+      }).catch(err => ({ _error: err })),
+    ]);
+
+    if (statsResult._error) {
+      console.error('stats 云函数调用失败:', statsResult._error);
+    } else if (statsResult.result && statsResult.result.code === 0) {
+      stats = statsResult.result.data;
+    } else {
+      console.error('stats 返回异常:', statsResult);
+    }
+
+    if (wishlistResult._error) {
+      console.error('wishlist 云函数调用失败:', wishlistResult._error);
+    } else if (wishlistResult.result && wishlistResult.result.code === 0) {
+      items = wishlistResult.result.data.items || [];
+    } else {
+      console.error('wishlist 返回异常:', wishlistResult);
     }
 
     this.setData({ stats, loading: false });

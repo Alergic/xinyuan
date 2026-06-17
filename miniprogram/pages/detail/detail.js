@@ -29,6 +29,9 @@ Page({
     poolBalance: 0,       // 通用池余额（用于预计计算）
     showChart: false,
     priceViewMode: 'list', // 'list' | 'chart' — 价格历史展示模式
+    showSavingForm: false,   // 是否显示存款表单
+    savingForm: { amount: '', note: '', tagId: '', tagName: '' },
+    availableTags: [],
   },
 
   onLoad(options) {
@@ -88,22 +91,9 @@ Page({
       item.deadline_text = util.formatDate(item.deadline);
     }
 
-    // 加载分类名称（通过云函数查询，避免客户端权限问题）
-    let categoryName = '';
-    if (item.category_id) {
-      try {
-        const catRes = await wx.cloud.callFunction({
-          name: 'category',
-          data: { action: 'list' },
-        });
-        const categories = catRes.result.data || [];
-        const found = categories.find(c => c._id === item.category_id);
-        categoryName = found ? found.name : '';
-      } catch (e) {
-        // 分类查询失败
-        categoryName = '';
-      }
-    }
+    // 分类名称由云函数 getItem 返回，无需客户端再查
+    const categoryName = item.category_name || '';
+    const categoryColor = item.category_color || '#999';
 
     this.setData({
       item,
@@ -111,6 +101,7 @@ Page({
       priorityText: priorityMap[item.priority] || item.priority,
       categoryName,
       daysLeft,
+      createdAtText: item.created_at ? util.formatDateTime(item.created_at) : '',
     });
   },
 
@@ -536,8 +527,14 @@ Page({
         return util.showToast(res.result.msg || '执行失败');
       }
       util.showToast(res.result.msg || '已存入', 'success');
-      // 刷新存款数据和计划
-      this.loadAll();
+      // 精准刷新：只更新受影响的 3 项，避免 7 次云函数调用
+      await Promise.all([
+        this.loadSavings(),
+        this.loadAutoSavePlan(),
+        this.loadPoolBalance(),
+      ]);
+      this.calcEstimatedDays();
+      this.loadSavingRecords().then(() => this.updateDisplayRecords());
     } catch (err) {
       console.error('执行定期存入失败:', err);
       util.showToast('执行失败，请重试');
@@ -594,81 +591,84 @@ Page({
     });
   },
 
-  // 添加专项存款（三步：金额 → 备注 → 标签）
-  addSaving() {
-    wx.showModal({
-      title: '添加专项存款',
-      editable: true,
-      placeholderText: '输入存入金额',
-      success: (res) => {
-        if (res.confirm && res.content) {
-          const amount = parseFloat(res.content);
-          if (isNaN(amount) || amount <= 0) {
-            return util.showToast('请输入有效金额');
-          }
-          // 第二步：可选备注
-          wx.showModal({
-            title: '添加备注（可选）',
-            editable: true,
-            placeholderText: '如：少点了一次外卖、退款到账等',
-            success: async (res2) => {
-              const note = (res2.confirm && res2.content) ? res2.content : '';
-              // 第三步：选择标签（如果有）
-              const { tagIds, tagNames } = await this.pickTag();
-              const tagHint = tagNames.length > 0 ? `\n标签：${tagNames.join('、')}` : '';
-              const confirmed = await util.showConfirm(`确认存入 ¥${amount.toFixed(2)}？${tagHint}`);
-              if (!confirmed) return;
-              try {
-                await wx.cloud.callFunction({
-                  name: 'saving',
-                  data: {
-                    action: 'addDedicated',
-                    data: {
-                      item_id: this.data.itemId,
-                      amount,
-                      note,
-                      tag_ids: tagIds,
-                    },
-                  },
-                });
-                util.showToast(`已存入 ¥${amount.toFixed(2)}`, 'success');
-                this.loadAll();
-              } catch (err) {
-                console.error('存款失败:', err);
-                util.showToast('存入失败，请重试');
-              }
-            },
-          });
-        }
-      },
-    });
+  // 专项存款：展开/收起表单
+  async toggleSavingForm() {
+    const show = !this.data.showSavingForm;
+    if (show) {
+      // 展开时加载标签
+      try {
+        const res = await wx.cloud.callFunction({
+          name: 'saving',
+          data: { action: 'listTags' },
+        });
+        this.setData({
+          showSavingForm: true,
+          availableTags: res.result?.data?.tags || [],
+          savingForm: { amount: '', note: '', tagId: '', tagName: '' },
+        });
+      } catch (e) {
+        this.setData({ showSavingForm: true });
+      }
+    } else {
+      this.setData({ showSavingForm: false });
+    }
   },
 
-  // 选择存款标签（返回 { tagIds, tagNames }）
-  async pickTag() {
-    try {
-      const res = await wx.cloud.callFunction({
-        name: 'saving',
-        data: { action: 'listTags' },
-      });
-      const tags = res.result?.data?.tags || [];
-      if (tags.length === 0) return { tagIds: [], tagNames: [] };
+  // 表单字段变更
+  onSavingFieldChange(e) {
+    const { field } = e.currentTarget.dataset;
+    this.setData({ [`savingForm.${field}`]: e.detail.value });
+  },
 
-      return new Promise((resolve) => {
-        wx.showActionSheet({
-          itemList: [...tags.map(t => `🏷 ${t.name}`), '不选标签'],
-          success: (r) => {
-            if (r.tapIndex < tags.length) {
-              resolve({ tagIds: [tags[r.tapIndex]._id], tagNames: [tags[r.tapIndex].name] });
-            } else {
-              resolve({ tagIds: [], tagNames: [] });
-            }
+  // 选择标签
+  onSelectSavingTag(e) {
+    const { id, name } = e.currentTarget.dataset;
+    const { savingForm } = this.data;
+    if (savingForm.tagId === id) {
+      this.setData({ 'savingForm.tagId': '', 'savingForm.tagName': '' });
+    } else {
+      this.setData({ 'savingForm.tagId': id, 'savingForm.tagName': name });
+    }
+  },
+
+  // 提交专项存款
+  async submitSaving() {
+    const { savingForm } = this.data;
+    const amount = parseFloat(savingForm.amount);
+    if (isNaN(amount) || amount <= 0) {
+      return util.showToast('请输入有效金额');
+    }
+
+    const tagHint = savingForm.tagName ? `\n标签：${savingForm.tagName}` : '';
+    const confirmed = await util.showConfirm(`确认存入 ¥${amount.toFixed(2)}？${tagHint}`);
+    if (!confirmed) return;
+
+    try {
+      const tagIds = savingForm.tagId ? [savingForm.tagId] : [];
+      await wx.cloud.callFunction({
+        name: 'saving',
+        data: {
+          action: 'addDedicated',
+          data: {
+            item_id: this.data.itemId,
+            amount,
+            note: savingForm.note || '',
+            tag_ids: tagIds,
           },
-          fail: () => resolve({ tagIds: [], tagNames: [] }),
-        });
+        },
       });
-    } catch (e) {
-      return { tagIds: [], tagNames: [] };
+      util.showToast(`已存入 ¥${amount.toFixed(2)}`, 'success');
+      // 关闭表单 + 精准刷新
+      this.setData({ showSavingForm: false });
+      await Promise.all([
+        this.loadSavings(),
+        this.loadSavingRecords(),
+      ]);
+      this.calcEstimatedDays();
+      this.updateDisplayRecords();
+    } catch (err) {
+      console.error('存款失败:', err);
+      util.showToast('存入失败，请重试');
     }
   },
 
@@ -779,6 +779,42 @@ Page({
     } catch (err) {
       console.error('删除失败:', err);
       util.showToast('删除失败，请重试');
+    }
+  },
+
+  // 任务排序：上移
+  moveTaskUp(e) {
+    const index = e.currentTarget.dataset.index;
+    if (index === 0) return;
+    this.swapTaskSort(index, index - 1);
+  },
+
+  // 任务排序：下移
+  moveTaskDown(e) {
+    const index = e.currentTarget.dataset.index;
+    if (index >= this.data.tasks.length - 1) return;
+    this.swapTaskSort(index, index + 1);
+  },
+
+  // 任务排序：交换两个任务的位置
+  async swapTaskSort(fromIdx, toIdx) {
+    const list = [...this.data.tasks];
+    const a = list[fromIdx];
+    const b = list[toIdx];
+    const aSort = a.sort_order != null ? a.sort_order : fromIdx;
+    const bSort = b.sort_order != null ? b.sort_order : toIdx;
+
+    try {
+      await Promise.all([
+        wx.cloud.callFunction({ name: 'task', data: { action: 'update', data: { id: a._id, sort_order: bSort } } }),
+        wx.cloud.callFunction({ name: 'task', data: { action: 'update', data: { id: b._id, sort_order: aSort } } }),
+      ]);
+      a.sort_order = bSort;
+      b.sort_order = aSort;
+      [list[fromIdx], list[toIdx]] = [list[toIdx], list[fromIdx]];
+      this.setData({ tasks: list });
+    } catch (err) {
+      util.showToast('排序失败');
     }
   },
 

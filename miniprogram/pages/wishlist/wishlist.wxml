@@ -1,7 +1,14 @@
 <!--心愿列表页-->
 <wxs module="util" src="../../utils/util.wxs"></wxs>
 <view class="container">
-  <!-- 筛选栏 -->
+  <!-- 搜索栏 + 筛选栏 -->
+  <view class="search-row">
+    <view class="search-input-wrap">
+      <text class="search-icon">🔍</text>
+      <input class="search-input" placeholder="搜索心愿..." value="{{searchText}}" bindinput="onSearchInput" confirm-type="search" />
+      <text wx:if="{{searchText}}" class="search-clear" bindtap="onClearSearch">✕</text>
+    </view>
+  </view>
   <view class="filter-bar">
     <view class="filter-item {{activeFilter === 'status' ? 'active' : ''}}" bindtap="showFilter" data-type="status">
       <text>{{statusLabel}}</text>
@@ -14,9 +21,6 @@
     <view class="filter-item {{activeFilter === 'sort' ? 'active' : ''}}" bindtap="showFilter" data-type="sort">
       <text>{{sortLabel}}</text>
       <text class="filter-arrow">▼</text>
-    </view>
-    <view class="filter-item" bindtap="onSearch">
-      <text>🔍</text>
     </view>
   </view>
 
@@ -62,12 +66,13 @@
       <view class="wish-info">
         <view class="flex-between">
           <text class="wish-name">{{item.name}}</text>
-          <text class="tag tag-{{item.display_status || item.status}}">{{item.status_text}}</text>
-          <text wx:if="{{item.priority_text}}" class="tag tag-{{item.priority}} ml-10">{{item.priority_text}}</text>
+          <view style="display:flex;flex-shrink:0">
+            <text class="tag tag-{{item.display_status || item.status}}">{{item.status_text}}</text>
+            <text wx:if="{{item.category_name}}" class="tag tag-category ml-10" style="background:{{item.category_color}}22;color:{{item.category_color}}">{{item.category_name}}</text>
+            <text wx:if="{{item.priority_text}}" class="tag tag-{{item.priority}} ml-10">{{item.priority_text}}</text>
+          </view>
         </view>
-        <view class="wish-meta">
-          <text wx:if="{{item.category_name}}" class="text-light">{{item.category_name}}</text>
-        </view>
+        <view class="wish-meta"></view>
         <view class="wish-prices">
           <text class="price price-current">¥{{util.formatMoney(item.current_price)}}</text>
           <text wx:if="{{item.target_price}}" class="price price-target ml-10">目标 ¥{{util.formatMoney(item.target_price)}}</text>

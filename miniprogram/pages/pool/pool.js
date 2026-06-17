@@ -71,7 +71,7 @@ Page({
       const allocations = (res.result.data.records || []).map(a => ({
         ...a,
         allocated_at_text: util.formatDateTime(a.allocated_at),
-        item_name: a.item_name || '已删除',
+        item_name: a.item_name,
       }));
 
       const totalAllocated = allocations.reduce((sum, a) => sum + a.amount, 0);

@@ -16,6 +16,10 @@
         </view>
       </view>
       <view class="category-right">
+        <view class="sort-btns">
+          <view class="sort-btn {{index === 0 ? 'sort-btn-disabled' : ''}}" bindtap="moveUp" data-index="{{index}}">▲</view>
+          <view class="sort-btn {{index === categories.length - 1 ? 'sort-btn-disabled' : ''}}" bindtap="moveDown" data-index="{{index}}">▼</view>
+        </view>
         <view class="category-action-btn" bindtap="editCategory" data-item="{{item}}">
           <text>✏️</text>
         </view>

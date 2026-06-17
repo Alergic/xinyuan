@@ -21,6 +21,19 @@ exports.main = async (event, context) => {
 };
 
 async function addTask(openid, data) {
+  // 新任务排序值：查询当前最大 sort_order + 1
+  let maxSort = 0;
+  try {
+    const existing = await db.collection('task')
+      .where({ user_id: openid, item_id: data.item_id })
+      .orderBy('sort_order', 'desc')
+      .limit(1)
+      .get();
+    if (existing.data.length > 0) {
+      maxSort = (existing.data[0].sort_order || 0) + 1;
+    }
+  } catch (e) { /* ignore */ }
+
   const task = {
     user_id: openid,
     item_id: data.item_id,
@@ -30,6 +43,7 @@ async function addTask(openid, data) {
     deadline: data.deadline || null,
     is_completed: false,
     completed_at: null,
+    sort_order: maxSort,
     created_at: new Date(),
   };
   const result = await db.collection('task').add({ data: task });
@@ -42,6 +56,7 @@ async function updateTask(openid, data) {
   if (data.title !== undefined) toUpdate.title = data.title;
   if (data.description !== undefined) toUpdate.description = data.description;
   if (data.deadline !== undefined) toUpdate.deadline = data.deadline;
+  if (data.sort_order !== undefined) toUpdate.sort_order = data.sort_order;
   await db.collection('task').doc(data.id).update({ data: toUpdate });
   return { code: 0, msg: '更新成功' };
 }
@@ -70,7 +85,7 @@ async function listTasks(openid, itemId) {
 
   const tasks = await db.collection('task')
     .where(where)
-    .orderBy('created_at', 'desc')
+    .orderBy('sort_order', 'asc')
     .get();
 
   return { code: 0, data: tasks.data };

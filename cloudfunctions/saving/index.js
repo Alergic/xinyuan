@@ -43,9 +43,17 @@ async function addDedicated(openid, data) {
   const amount = parseFloat(data.amount);
   if (isNaN(amount) || amount <= 0) return { code: -1, msg: '金额必须为正数' };
 
+  // 存储 item_name 快照，避免 item 被删除后显示"已删除"
+  let item_name = '';
+  try {
+    const itemRes = await db.collection('wishlist_item').doc(data.item_id).get();
+    item_name = itemRes.data ? itemRes.data.name : '';
+  } catch (e) { /* item 不存在时留空 */ }
+
   const record = {
     user_id: openid,
     item_id: data.item_id,
+    item_name,
     amount,
     saving_type: 'dedicated',
     note: data.note || '',
@@ -86,9 +94,17 @@ async function allocatePool(openid, data) {
     return { code: -1, msg: '通用池余额不足' };
   }
 
+  // 存储 item_name 快照，避免 item 被删除后显示"已删除"
+  let item_name = '';
+  try {
+    const itemRes = await db.collection('wishlist_item').doc(data.item_id).get();
+    item_name = itemRes.data ? itemRes.data.name : '';
+  } catch (e) { /* item 不存在时留空 */ }
+
   const allocation = {
     user_id: openid,
     item_id: data.item_id,
+    item_name,
     amount: allocAmount,
     allocation_method: data.allocation_method || 'manual',
     note: data.note || '',
@@ -118,9 +134,24 @@ async function listSavings(openid, options) {
 
   const countResult = await db.collection('saving_record').where(where).count();
 
-  // 批量获取标签名 + 颜色
-  const tagMap = await getTagNameMap(openid);
-  const tagColorMap = await getTagColorMap(openid);
+  // 批量获取标签名 + 颜色（合并为一次 DB 查询）
+  const { nameMap: tagMap, colorMap: tagColorMap } = await getTagInfoMap(openid);
+
+  // 批量获取物品名 + 存款目标（为旧记录补充，服务端查询不受客户端权限限制）
+  const recordsWithoutItemInfo = records.data.filter(r => r.item_id && (!r.item_name || r.item_target === undefined));
+  const itemIds = [...new Set(recordsWithoutItemInfo.map(r => r.item_id))];
+  const itemMap = {}; // { _id: { name, saving_target_amount } }
+  if (itemIds.length > 0) {
+    try {
+      const items = await fetchAll(
+        db.collection('wishlist_item').where({ _id: _.in(itemIds) }),
+        itemIds.length + 10
+      );
+      for (const item of items) {
+        itemMap[item._id] = item;
+      }
+    } catch (e) { /* ignore */ }
+  }
 
   const enriched = records.data.map(r => {
     const tagList = (r.tag_ids || []).map(id => ({
@@ -132,6 +163,9 @@ async function listSavings(openid, options) {
       tag_names: tagList.map(t => t.name),
       tag_colors: tagList.map(t => t.color),
       tag_list: tagList,
+      // 补充 item_name / item_target：优先存储的快照，其次服务端查询，最后 fallback
+      item_name: r.item_name || (itemMap[r.item_id] ? itemMap[r.item_id].name : '') || (r.item_id ? '已删除' : ''),
+      item_target: r.item_target || (itemMap[r.item_id] ? itemMap[r.item_id].saving_target_amount : 0) || 0,
     };
   });
 
@@ -213,8 +247,9 @@ async function listAllocations(openid, options) {
   // 按时间降序
   records.sort((a, b) => new Date(b.allocated_at) - new Date(a.allocated_at));
 
-  // 批量获取物品名称（服务端查询，不受客户端权限限制）
-  const itemIds = [...new Set(records.map(a => a.item_id).filter(Boolean))];
+  // 为没有 item_name 快照的旧记录批量查询物品名
+  const recordsWithoutName = records.filter(r => r.item_id && !r.item_name);
+  const itemIds = [...new Set(recordsWithoutName.map(r => r.item_id))];
   const itemMap = {};
   if (itemIds.length > 0) {
     try {
@@ -225,15 +260,13 @@ async function listAllocations(openid, options) {
       for (const item of items) {
         itemMap[item._id] = item.name;
       }
-    } catch (e) {
-      console.error('批量获取物品名失败:', e);
-    }
+    } catch (e) { /* ignore */ }
   }
 
-  // 附加物品名到每条记录
+  // 优先使用存储的 item_name 快照，其次服务端查询，最后 fallback
   const enriched = records.slice(0, pageSize).map(r => ({
     ...r,
-    item_name: itemMap[r.item_id] || '已删除',
+    item_name: r.item_name || itemMap[r.item_id] || (r.item_id ? '已删除' : ''),
   }));
 
   return {
@@ -487,15 +520,17 @@ async function deleteTag(openid, data) {
   if (!data.id) return { code: -1, msg: '缺少标签ID' };
   await requireOwnership('deposit_tag', data.id, openid);
 
-  // 从所有存款记录中移除该标签
+  // 只查询含有该标签的存款记录（而非全量拉取）
   const records = await fetchAll(
-    db.collection('saving_record').where({ user_id: openid })
+    db.collection('saving_record').where({ user_id: openid, tag_ids: data.id })
   );
-  for (const r of records) {
-    if (r.tag_ids && r.tag_ids.includes(data.id)) {
-      const newTagIds = r.tag_ids.filter(id => id !== data.id);
-      await db.collection('saving_record').doc(r._id).update({ data: { tag_ids: newTagIds } });
-    }
+
+  // 并行更新所有引用了该标签的记录
+  if (records.length > 0) {
+    await Promise.all(records.map(r => {
+      const newTagIds = (r.tag_ids || []).filter(id => id !== data.id);
+      return db.collection('saving_record').doc(r._id).update({ data: { tag_ids: newTagIds } });
+    }));
   }
 
   await db.collection('deposit_tag').doc(data.id).remove();
@@ -512,37 +547,22 @@ async function listTags(openid) {
   return { code: 0, data: { tags } };
 }
 
-// 批量获取标签名映射（内部使用）
-async function getTagNameMap(openid) {
+// 批量获取标签名 + 颜色映射（合并查询，减少一次 DB 读）
+async function getTagInfoMap(openid) {
   try {
     const tags = await fetchAll(
       db.collection('deposit_tag').where({ user_id: openid }),
       100
     );
-    const map = {};
+    const nameMap = {};
+    const colorMap = {};
     for (const t of tags) {
-      map[t._id] = t.name;
+      nameMap[t._id] = t.name;
+      colorMap[t._id] = t.color || '#5C6BC0';
     }
-    return map;
+    return { nameMap, colorMap };
   } catch (e) {
-    return {};
-  }
-}
-
-// 批量获取标签颜色映射（内部使用）
-async function getTagColorMap(openid) {
-  try {
-    const tags = await fetchAll(
-      db.collection('deposit_tag').where({ user_id: openid }),
-      100
-    );
-    const map = {};
-    for (const t of tags) {
-      map[t._id] = t.color || '#5C6BC0';
-    }
-    return map;
-  } catch (e) {
-    return {};
+    return { nameMap: {}, colorMap: {} };
   }
 }
 

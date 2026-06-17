@@ -41,7 +41,7 @@ async function addItem(openid, data) {
     target_save_percent: parseFloat(data.target_save_percent) || 100,
     priority: data.priority || 'medium',
     status: 'planning',
-    deadline: data.deadline || null,
+    deadline: data.deadline ? new Date(data.deadline) : null,
     deadline_type: data.deadline_type || '',
     estimated_finish_date: null,
     created_at: new Date(),
@@ -80,6 +80,11 @@ async function updateItem(openid, data) {
   }
   toUpdate.updated_at = new Date();
 
+  // 规范化 deadline：客户端传字符串，统一转为 Date 对象
+  if (toUpdate.deadline !== undefined) {
+    toUpdate.deadline = toUpdate.deadline ? new Date(toUpdate.deadline) : null;
+  }
+
   await db.collection('wishlist_item').doc(id).update({ data: toUpdate });
   return { code: 0, msg: '更新成功' };
 }
@@ -91,9 +96,25 @@ async function deleteItem(openid, id) {
   return { code: 0, msg: '删除成功' };
 }
 
-// 获取单个物品详情
+// 获取单个物品详情（含分类名）
 async function getItem(openid, id) {
   const item = await requireOwnership('wishlist_item', id, openid);
+
+  // 附加分类名称 + 颜色（避免客户端再调 category.list）
+  if (item.category_id && item.category_id !== 'default') {
+    try {
+      const catRes = await db.collection('category').doc(item.category_id).get();
+      if (catRes.data) {
+        item.category_name = catRes.data.name;
+        item.category_color = catRes.data.color || '#5C6BC0';
+      }
+    } catch (e) { /* 分类可能已被删除 */ }
+  }
+  if (!item.category_name) {
+    item.category_name = item.category_id === 'default' || !item.category_id ? '未分类' : '';
+    item.category_color = '#999';
+  }
+
   return { code: 0, data: item };
 }
 
@@ -212,7 +233,22 @@ async function listItemsEnriched(openid, options) {
     }
   }
 
-  // 4. 充实每个 item 的数据 + 计算进度
+  // 3.5 批量查询分类，附加 name + color
+  const categoryIds = [...new Set(items.map(i => i.category_id).filter(Boolean))];
+  const categoryMap = {};
+  if (categoryIds.length > 0) {
+    try {
+      const cats = await fetchAll(
+        db.collection('category').where({ user_id: openid, _id: _.in(categoryIds) }),
+        categoryIds.length + 10
+      );
+      for (const c of cats) {
+        categoryMap[c._id] = { name: c.name, color: c.color || '#5C6BC0' };
+      }
+    } catch (e) { /* ignore */ }
+  }
+
+  // 4. 充实每个 item 的数据 + 计算进度 + display_status
   const now = new Date();
   for (const item of items) {
     const s = savingsMap[item._id] || { dedicated: 0, pool: 0 };
@@ -224,19 +260,41 @@ async function listItemsEnriched(openid, options) {
     item.progress = item.saving_target_amount > 0
       ? Math.min(Math.round((item.total_saved / item.saving_target_amount) * 100), 100)
       : 0;
+    // 分类名称 + 颜色
+    const catInfo = categoryMap[item.category_id];
+    item.category_name = catInfo ? catInfo.name : (item.category_id === 'default' || !item.category_id ? '未分类' : '');
+    item.category_color = catInfo ? catInfo.color : '#999';
+    // display_status（服务端统一计算，客户端直接使用）
+    item.display_status = computeDisplayStatus(item, now);
   }
 
-  // 5. 服务端过滤派生状态
+  // 5. 服务端过滤派生状态（复用已计算的 item.display_status，避免双重算）
   if (isDerivedStatus) {
-    items = items.filter(item => {
-      return computeDisplayStatus(item, now) === status;
-    });
+    items = items.filter(item => item.display_status === status);
     total = items.length;
+
+    // 排序（fetchAll 不保证顺序，需手动排）
+    const { sort = 'updated_at', order = 'desc' } = options;
+    const allowedSortFields = ['created_at', 'updated_at', 'deadline', 'current_price'];
+    const sortField = allowedSortFields.includes(sort) ? sort : 'updated_at';
+    const sortDir = order === 'asc' ? 1 : -1;
+    items.sort((a, b) => {
+      const va = a[sortField], vb = b[sortField];
+      if (va == null && vb == null) return 0;
+      if (va == null) return 1;
+      if (vb == null) return -1;
+      return sortDir * (va > vb ? 1 : -1);
+    });
+
+    // 分页截取（之前全量返回，现支持 page/pageSize）
+    const { page = 1, pageSize = 20 } = options;
+    const skip = (page - 1) * pageSize;
+    items = items.slice(skip, skip + pageSize);
   }
 
   return {
     code: 0,
-    data: { items, total, page: 1, pageSize: isDerivedStatus ? items.length : 20 },
+    data: { items, total, page: options.page || 1, pageSize: options.pageSize || 20 },
   };
 }
 
