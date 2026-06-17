@@ -1,6 +1,8 @@
 # 心愿计划 — 项目上下文
 
-> 最后更新：2026-06-17（第四轮：统计修复 + 分配记录 + 目标存款比例）
+> 最后更新：2026-06-17（第六轮：5.1 功能完善 + 详情页优化 + Bug 修复）
+
+## 项目简介
 
 ## 项目简介
 
@@ -31,6 +33,8 @@
 | 多图存储 | `image_urls` 数组 + `image_url`（首图兼容） | 兼容旧单图数据，新增页用 3 图网格 |
 | 备注采集 | 价格/存款弹窗两步式（金额 → 备注） | 微信小程序一次只能弹一个输入框，两步是权衡方案 |
 | pool_allocation 查询 | 通过云函数 `listAllocations` 而非客户端直查 | 客户端直查受集合权限/索引限制，可能静默返回空 |
+| 定期存入计划存储 | 独立集合 `auto_save_plan`，非 wishlist_item 字段 | 分离关注点；upsert 模式同一心愿只保留一条；软停用保留历史 |
+| 定期存入执行 | 手动触发 executeAutoSave，非定时触发器 | V1 保持简单，手动触发可感知；定时触发器延后实现 |
 
 ### 1.2 已修复的关键 Bug
 
@@ -90,13 +94,14 @@ xinyuan/
 │   ├── price/                       # 价格记录 + 史低价 + delete
 │   ├── task/                        # 任务清单（add/toggle/update/delete/list）
 │   ├── stats/                       # 数据统计
+│   ├── notify/                      # ★ Deadline 订阅消息提醒（定时触发）
 │   ├── category/                    # 分类管理
 │   └── pool/                        # 空目录，忽略（功能在 saving 中）
 ├── miniprogram/
 │   ├── app.js                       # 入口：云开发初始化，获取 openid
 │   ├── app.json                     # 页面注册 + TabBar
 │   ├── app.wxss                     # 全局样式
-│   ├── images/                      # 图标资源（TabBar 图标待补充）
+│   ├── images/                      # 图标资源（10 张 TabBar PNG，81x81px）
 │   ├── utils/
 │   │   ├── util.js                  # JS 工具函数
 │   │   ├── util.wxs                 # ★ WXS 模板格式化（formatMoney）
@@ -109,7 +114,8 @@ xinyuan/
 │       ├── pool/                    # 通用存款池：存入/分配/撤销
 │       ├── savings/                 # 存款记录列表：汇总 + 进度 + 删除
 │       ├── stats/                   # 数据统计（含总进度百分比）
-│       ├── mine/                    # 我的页面
+│       ├── mine/                    # 我的页面（头像/昵称/签名/标签管理入口/提醒订阅）
+│       ├── tags/                    # 存款标签管理
 │       └── category/                # 分类管理
 ```
 
@@ -127,7 +133,8 @@ xinyuan/
 | `saving_record` | 存款记录 | `user_id`, `item_id`, `amount`, `saving_type`(dedicated/pool) |
 | `pool_allocation` | 通用池分配 | `user_id`, `item_id`, `amount` |
 | `task` | 任务清单 | `user_id`, `item_id`, `title`, `is_completed` |
-| `saving_record_tag` | 存款标签 | `saving_record_id`, `tag_id` |
+| `saving_record_tag` | 存款标签（旧版，已弃用） | `saving_record_id`, `tag_id` |
+| `deposit_tag` | ★ 存款标签定义 | `user_id`, `name`, `color`, `sort_order` |
 | `purchase_record` | 购买记录 | `user_id`, `item_id`, `final_price` |
 
 ---
@@ -173,6 +180,12 @@ xinyuan/
 - [x] 目标存款比例滑块（新增/编辑页，10%-100%，步长 5%）
 - [x] 统计页可购买/存款中与列表一致
 - [x] pool_allocation 云函数查询（解决客户端查不到问题）
+- [x] 价格历史 + 存款明细折叠（默认 3 条，可展开/收起）
+- [x] 定期存入计划（从通用池定期自动存入，含余额/终态等边界处理）
+- [x] 含定期存入的预计完成日（与仅历史存款对比展示）
+- [x] 通用池存入备注（与专项存款一致的两步弹窗）
+- [x] 分类点击查看心愿列表（category 跳转 wishlist 自动筛选）
+- [x] 空状态引导文案优化（wishlist/index/savings）
 
 ---
 
@@ -180,21 +193,21 @@ xinyuan/
 
 ### 5.1 功能完善
 
-- [ ] TabBar 图标（10 张 PNG，81x81px）
-- [ ] 存款标签功能（标签选择、标签统计）
-- [ ] 价格趋势图（price_record >= 3 条时展示）
-- [ ] 预计完成日计算（已预留计算逻辑，需验证）
-- [ ] Deadline 提醒（订阅消息）
-- [ ] 通用池存入添加备注
+- [x] TabBar 图标（10 张 PNG，81x81px）— `scripts/generate-icons.js` 生成
+- [x] 存款标签功能（标签选择、标签统计）— 标签 CRUD + 存款关联 + 统计
+- [x] 价格趋势图（price_record >= 3 条时展示）
+- [x] Deadline 提醒（订阅消息）— `notify` 云函数 + 定时触发器，代码已完成
+- [ ] **⚠️ 订阅消息模板 ID** — 微信后台审核中，需替换 `notify/index.js` 和 `mine.js` 中 `YOUR_TEMPLATE_ID_HERE`
+- [x] 定期存入定时触发器（目前手动触发，可加云函数定时器自动执行）— `saving` 云函数 `autoSaveTimer` 触发器
 
 ### 5.2 体验优化
 
 - [ ] 实时搜索栏（当前为模态弹窗，体验差）
-- [ ] 空状态引导文案优化 + 插图
+- [ ] 空状态引导文案优化 + 插图（文案 ✅，插图待做）
 - [ ] 加载骨架屏
 - [ ] 分类拖拽排序
 - [ ] 任务拖拽排序
-- [ ] 分类点击查看其下心愿列表
+- [x] 分类点击查看其下心愿列表
 
 ### 5.3 技术债务
 
@@ -216,6 +229,12 @@ xinyuan/
 ---
 
 ## 6. 开发注意事项
+
+### 6.0 Skill 调用规则（Agent 必读）
+- **开发新功能**时，先 invoke `develop-feature` skill，按流程执行：读代码 → 方案 → 编码 → 验证清单 → 更新文档
+- **修复 Bug** 时，先 invoke `fix-bug` skill，按流程执行：复现 → 定位根因 → 修复 → 记录
+- **开发完成**后，invoke `deploy-check` 给出部署清单
+- **会话结束**前，invoke `update-context` 更新本文档和记忆文件
 
 ### 6.1 修改云函数后
 必须右键 → **上传并部署：云端安装依赖**，否则云端跑的仍是旧代码。
@@ -254,10 +273,78 @@ exports.main = async (event, context) => {
 11. **客户端直查集合可能因权限/索引静默失败** — 云函数创建的文档，客户端查询受集合权限影响。调试时优先用云函数查询（服务端不受限），加 `.catch` 时务必打 log
 12. **云函数调用必须检查 `result.code`** — `wx.cloud.callFunction` 不 throw on 业务错误码，不检查 code 会导致失败也显示"成功"
 13. **`box-sizing` 不继承** — CSS 中 `box-sizing: border-box` 需显式设置到每个需要精确宽度计算的元素上
+14. **定期存入余额不足** — `executeAutoSave` 失败时需向用户提示具体余额缺口；预计完成日计算需考虑余额仅能支撑 N 期
+15. **微信 `<button>` 默认样式不可信** — button 有内置的 `margin: auto`（居中）、内部 padding（裁图）、`::after` 伪元素（占位），CSS 逐个覆盖效果不稳定。**正确做法**：外层 view wrapper 控制尺寸和间距，button 只做 100% 透明填充 + `border-radius: 0`，圆形外观由 image 自身 `border-radius: 50%` 实现。不要在 button 和 image 上同时设圆角（双重裁剪）。调试 >3 次仍不对就换结构，不要继续调参
 
 ---
 
 ## 7. 重要修改记录
+
+### 2026-06-17（第六轮：5.1 完善 + 详情页优化 + 筛选修复）
+
+**5.1 功能完善：**
+- TabBar 图标：`scripts/generate-icons.js` 生成 10 张 81×81 PNG
+- 存款标签：`deposit_tag` 集合 + `saving` 云函数 CRUD + `stats` 云函数标签统计 + `pages/tags/` 管理页
+- Deadline 提醒：`notify` 云函数（定时 + 订阅消息），模板 ID 待微信审核
+- 定期存入定时器：`saving/config.json` + `runAutoSaveBatch()`
+
+**详情页优化：**
+- 图片点击 `wx.previewImage` 全屏预览
+- 分类标签展示（云函数查询，解决客户端权限问题）+ 点击切换
+- 优先级标签可点击切换（与状态标签统一 `▾` 下拉模式）
+
+**Bug 修复：**
+- `saving` 云函数 `listAllocations` 缺失 `_` 导入 → 分配记录显示"已删除"
+- `saving`/`buyable` 筛选：`listItemsEnriched` 服务端 `computeDisplayStatus` + `fetchAll` 全量，客户端 `wx.nextTick` 防时序
+- 首页卡片可点击跳转 → wishlist 自动筛选（`pendingWishlistFilter`）
+- `target_save_percent` 缺失 `|| 100` fallback 导致旧数据判定异常
+- Mine 页布局重构：微信 button 默认样式隔离（wrapper + border-radius: 0）
+
+**新坑记录：**
+- 微信 `<button>` 不可信 → 用 wrapper 隔离（见 6.4 第 15 条）
+- `onShow` 中 `setData` 后立即 `loadItems` 可能读到旧 `this.data` → 用 `wx.nextTick` 延迟
+
+### 2026-06-17（折叠 + 定期存入 + 体验优化 — 第五轮）
+
+**云函数新增（saving）：**
+- `setAutoSave` — 创建/更新定期存入计划（upsert 模式，同一心愿只保留一条）
+- `disableAutoSave` — 软停用定期存入计划
+- `executeAutoSave` — 手动触发当期存入，含边界处理（余额不足/心愿终态/剩余目标 cap）
+- `getAutoSavePlan` — 查询心愿的定期存入计划
+
+**详情页改造（detail）：**
+- 价格历史 + 存款明细默认展示 3 条，超过 3 条显示"展开全部 (N 条)"按钮
+- 新增定期存入设置区：未设置引导 → 金额 → 周期（每天/每周/每月）→ 确认
+- 已设置时展示计划详情 + "立即执行本期存入" + "修改计划" + "停用"
+- 预计完成日分两行：仅历史存款 + 含定期存入
+- 考虑通用池余额上限对预计完成日的影响
+
+**通用池存入备注（pool）：**
+- 存入改为两步弹窗（金额 → 备注），与专项存款体验一致
+
+**分类点击查看心愿（category → wishlist）：**
+- 分类行加 bindtap，通过 `app.globalData.pendingCategoryFilter` 传递筛选参数
+- wishlist `onShow` 检查并消费 pendingCategoryFilter，自动应用分类筛选
+
+**空状态文案优化：**
+- wishlist: "📝 还没有心愿" + 引导文案
+- index: "✨ 添加第一个心愿吧"
+- savings: "💰 还没有存款记录"
+
+**数据库：**
+- 新增集合 `auto_save_plan`（user_id, item_id, enabled, amount, frequency, last_executed_at）
+
+**修改文件清单（12 个）：**
+`cloudfunctions/saving/index.js`、
+`miniprogram/pages/detail/detail.js`、`detail.wxml`、`detail.wxss`、
+`miniprogram/pages/pool/pool.js`、
+`miniprogram/pages/category/category.js`、`category.wxml`、
+`miniprogram/pages/wishlist/wishlist.js`、`wishlist.wxml`、
+`miniprogram/pages/index/index.wxml`、
+`miniprogram/pages/savings/savings.wxml`、
+`miniprogram/app.js`
+
+---
 
 ### 2026-06-17（统计修复 + 分配记录 + 目标存款比例 — 第四轮）
 
@@ -440,3 +527,18 @@ exports.main = async (event, context) => {
 20. 新增心愿可上传 3 张图，详情页 swiper 轮播
 21. Deadline 可清除（编辑页 ✕ 按钮）
 22. 存款页底部按钮栏显示 "💰 记录存款"
+23. 价格历史 > 3 条时折叠，点击展开/收起
+24. 存款明细 > 3 条时折叠，点击展开/收起
+25. 设置定期存入：金额 → 选择周期 → 确认 → 计划展示在详情页
+26. 手动执行定期存入：余额充足成功 → 余额不足提示具体缺口
+27. 定期存入停用/修改
+28. 预计完成日：两行展示（仅历史 + 含定期存入）
+29. 通用池存入：金额 → 备注 → 确认
+30. 分类页点分类 → wishlist 页自动筛选该分类
+31. TabBar 5 个页面图标显示正常（灰/紫两态）
+32. 存款标签：创建/编辑/删除 → detail/savings 页标签 chip 展示 → 统计页标签统计卡片
+33. Mine 页：头像左对齐 + 昵称/签名可编辑 → 提醒设置弹出订阅授权
+34. 详情页图片点击 → 全屏预览可左右滑动
+35. 详情页分类/优先级标签点击 → ActionSheet 切换
+36. 首页统计卡片点击 → wishlist 自动筛选对应状态
+37. 存款分配记录正确显示心愿名称（非"已删除"）

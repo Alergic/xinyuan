@@ -1,17 +1,18 @@
 .stats-grid {
   display: flex;
   flex-wrap: wrap;
-  gap: 16rpx;
+  justify-content: space-between;
   margin-bottom: 20rpx;
 }
 .stat-card {
-  width: calc(50% - 8rpx);
+  width: 49%;
   background: var(--color-card);
   border-radius: var(--radius);
   padding: 24rpx 16rpx;
   text-align: center;
   box-shadow: var(--shadow);
   box-sizing: border-box;
+  margin-bottom: 16rpx;
 }
 .stat-num {
   display: block;

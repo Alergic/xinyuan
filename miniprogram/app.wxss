@@ -97,7 +97,9 @@ page {
 }
 .form-input {
   width: 100%;
-  padding: 24rpx 28rpx;
+  height: 80rpx;
+  line-height: 1.4;
+  padding: 0 28rpx;
   border: 2rpx solid var(--color-border);
   border-radius: var(--radius);
   font-size: 28rpx;

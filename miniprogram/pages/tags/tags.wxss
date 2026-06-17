@@ -1,0 +1,33 @@
+.card-subtitle {
+  font-size: 24rpx;
+  color: var(--color-text-light);
+  margin-bottom: 20rpx;
+}
+.tag-row {
+  display: flex;
+  align-items: center;
+  padding: 18rpx 0;
+  border-bottom: 1rpx solid var(--color-border);
+}
+.tag-row:last-child {
+  border-bottom: none;
+}
+.tag-color {
+  width: 32rpx;
+  height: 32rpx;
+  border-radius: 50%;
+  margin-right: 16rpx;
+  flex-shrink: 0;
+}
+.tag-name {
+  flex: 1;
+  font-size: 30rpx;
+  color: var(--color-text);
+}
+.tag-arrow {
+  color: var(--color-text-light);
+  font-size: 36rpx;
+}
+.btn-block {
+  margin-top: 24rpx;
+}

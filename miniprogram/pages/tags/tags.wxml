@@ -1,0 +1,19 @@
+<!--存款标签管理-->
+<view class="container">
+  <view class="card">
+    <view class="card-title">🏷️ 存款标签</view>
+    <view class="card-subtitle">为存款记录打标签，方便分类统计</view>
+
+    <view wx:if="{{tags.length === 0}}" class="empty-state">
+      <text>还没有标签，点击下方按钮创建</text>
+    </view>
+
+    <view wx:for="{{tags}}" wx:key="_id" class="tag-row" bindtap="editTag" data-tag="{{item}}">
+      <view class="tag-color" style="background:{{item.color}}"></view>
+      <text class="tag-name">{{item.name}}</text>
+      <text class="tag-arrow">›</text>
+    </view>
+  </view>
+
+  <button class="btn btn-primary btn-block" bindtap="addTag">+ 新建标签</button>
+</view>

@@ -78,6 +78,17 @@ Page({
     });
   },
 
+  // 点击分类 → 查看该分类下的心愿列表
+  goWishlistByCategory(e) {
+    const { id, name } = e.currentTarget.dataset;
+    const app = getApp();
+    app.globalData.pendingCategoryFilter = {
+      category_id: id,
+      category_name: name,
+    };
+    wx.switchTab({ url: '/pages/wishlist/wishlist' });
+  },
+
   // 删除分类
   async deleteCategory(e) {
     const id = e.currentTarget.dataset.id;

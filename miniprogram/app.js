@@ -52,6 +52,10 @@ App({
       'paused': '暂缓',
       'overdue': '已逾期',
     },
+    // 分类筛选缓存（分类页跳转 wishlist 时使用）
+    pendingCategoryFilter: null, // { category_id, category_name }
+    // 首页筛选跳转（首页状态卡片跳转 wishlist 时使用）
+    pendingWishlistFilter: null, // { filter, label }
     // 优先级文本映射
     priorityMap: {
       'high': '高',

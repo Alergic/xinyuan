@@ -3,10 +3,14 @@
 <view class="container">
   <!-- 用户信息 -->
   <view class="user-card">
-    <image class="avatar" src="{{avatarUrl || '/images/default-avatar.png'}}" mode="aspectFill" />
+    <view class="avatar-wrap">
+      <button class="avatar-btn" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar">
+        <image class="avatar" src="{{avatarUrl || '/images/default-avatar.png'}}" mode="aspectFill" />
+      </button>
+    </view>
     <view class="user-info">
-      <text class="nickname">{{nickname || '心愿用户'}}</text>
-      <text class="text-light" style="font-size:22rpx">每一步都算数 💪</text>
+      <input class="nickname-input" type="nickname" value="{{nickname}}" placeholder="点击设置昵称" bindblur="onNicknameSave" />
+      <input class="signature-input" value="{{signature}}" placeholder="写一句个性签名..." bindblur="onSignatureSave" maxlength="30" />
     </view>
   </view>
 
@@ -38,9 +42,13 @@
       <text>📁 分类管理</text>
       <text class="text-light">›</text>
     </view>
-    <view class="menu-item" bindtap="showComingSoon">
+    <view class="menu-item" bindtap="goTags">
+      <text>🏷️ 存款标签</text>
+      <text class="text-light">›</text>
+    </view>
+    <view class="menu-item" bindtap="subscribeReminder">
       <text>🔔 提醒设置</text>
-      <text class="text-light">即将推出 ›</text>
+      <text class="text-light">{{reminderSubscribed ? '已订阅' : '订阅提醒'}} ›</text>
     </view>
     <view class="menu-item" bindtap="showAbout">
       <text>ℹ️ 关于心愿计划</text>

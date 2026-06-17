@@ -45,6 +45,9 @@
       <view class="flex-between mt-10">
         <view style="display:flex;align-items:center;flex:1">
           <text wx:if="{{item.note}}" class="text-light" style="font-size:24rpx">📝 {{item.note}}</text>
+          <view wx:if="{{item.tag_names && item.tag_names.length > 0}}" class="saving-tag-row">
+            <text wx:for="{{item.tag_names}}" wx:key="*this" wx:for-item="t" class="tag-chip">{{t}}</text>
+          </view>
         </view>
         <view style="display:flex;align-items:center">
           <text class="text-light" style="font-size:22rpx;margin-right:15rpx">{{item.saved_at_text}}</text>
@@ -54,7 +57,8 @@
     </view>
   </view>
   <view wx:else class="empty-state">
-    <text class="text-light">暂无存款记录</text>
+    <text>💰 还没有存款记录</text>
+    <text class="text-light mt-10">每次存一点，离目标更近一步</text>
   </view>
 
   <!-- 添加按钮 -->

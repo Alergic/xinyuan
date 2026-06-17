@@ -60,10 +60,9 @@ Page({
     this.setData({ records, totalPoolIn });
   },
 
-  // 加载分配记录（通过云函数查询，避免客户端权限/索引问题）
+  // 加载分配记录（通过云函数查询，已含 item_name）
   async loadAllocations() {
     try {
-      const db = wx.cloud.database();
       const res = await wx.cloud.callFunction({
         name: 'saving',
         data: { action: 'listAllocations', data: { pageSize: 50 } },
@@ -72,29 +71,10 @@ Page({
       const allocations = (res.result.data.records || []).map(a => ({
         ...a,
         allocated_at_text: util.formatDateTime(a.allocated_at),
+        item_name: a.item_name || '已删除',
       }));
 
       const totalAllocated = allocations.reduce((sum, a) => sum + a.amount, 0);
-
-      // 批量获取物品名称（替代逐个查询）
-      const itemIds = [...new Set(allocations.map(a => a.item_id).filter(Boolean))];
-      if (itemIds.length > 0) {
-        const itemMap = {};
-        try {
-          const _ = db.command;
-          const itemRes = await db.collection('wishlist_item')
-            .where({ _id: _.in(itemIds) })
-            .get();
-          for (const item of itemRes.data) {
-            itemMap[item._id] = item.name;
-          }
-        } catch (e) {
-          console.error('批量获取物品名失败:', e);
-        }
-        for (const a of allocations) {
-          a.item_name = itemMap[a.item_id] || '已删除';
-        }
-      }
 
       this.setData({ allocations, totalAllocated });
     } catch (err) {
@@ -134,10 +114,12 @@ Page({
           if (isNaN(amount) || amount <= 0) {
             return util.showToast('请输入有效金额');
           }
+          const confirmed = await util.showConfirm(`确认存入 ¥${amount.toFixed(2)} 到通用池？`);
+          if (!confirmed) return;
           try {
             await wx.cloud.callFunction({
               name: 'saving',
-              data: { action: 'addPool', data: { amount, note: '' } },
+              data: { action: 'addPool', data: { amount } },
             });
             util.showToast('已存入通用池', 'success');
             this.loadAll();

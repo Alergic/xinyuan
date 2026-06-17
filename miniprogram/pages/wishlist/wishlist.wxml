@@ -94,8 +94,9 @@
 
   <!-- 空状态 -->
   <view wx:else class="empty-state">
-    <text>还没有心愿物品～</text>
-    <text class="text-light mt-10">点击右下角 + 添加第一个心愿吧</text>
+    <text>📝 还没有心愿</text>
+    <text class="text-light mt-10">记录想买的物品，开始存钱计划吧</text>
+    <text class="text-light" style="font-size:22rpx;margin-top:6rpx">点击右下角 + 添加第一个心愿</text>
   </view>
 
   <!-- 添加按钮（浮动） -->

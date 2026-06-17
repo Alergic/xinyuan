@@ -82,6 +82,22 @@
   z-index: 100;
 }
 
+/* 标签 */
+.saving-tag-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6rpx;
+  margin-left: 12rpx;
+}
+.tag-chip {
+  display: inline-block;
+  padding: 2rpx 12rpx;
+  border-radius: 16rpx;
+  font-size: 20rpx;
+  color: var(--color-primary);
+  background: var(--color-primary-light);
+}
+
 /* 给页面底部留出按钮空间 */
 .container.has-bottom-bar {
   padding-bottom: 140rpx;

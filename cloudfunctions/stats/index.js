@@ -101,6 +101,26 @@ async function getStats(openid) {
     if (item.status === 'purchased') categoryStats[catId].completed++;
   }
 
+  // 标签统计：各标签下的存款总额
+  const [allSavings, tags] = await Promise.all([
+    fetchAll(db.collection('saving_record').where({ user_id: openid })),
+    fetchAll(db.collection('deposit_tag').where({ user_id: openid }), 100),
+  ]);
+
+  const tagMap = {};
+  for (const t of tags) { tagMap[t._id] = t.name; }
+
+  const tagStats = {};
+  for (const r of allSavings) {
+    if (!r.tag_ids || r.tag_ids.length === 0) continue;
+    for (const tid of r.tag_ids) {
+      const name = tagMap[tid] || '未知';
+      if (!tagStats[name]) tagStats[name] = { count: 0, total: 0 };
+      tagStats[name].count++;
+      tagStats[name].total += r.amount;
+    }
+  }
+
   return {
     code: 0,
     data: {
@@ -115,6 +135,7 @@ async function getStats(openid) {
       month_savings: monthSavings,
       month_new_items: monthNewItems,
       category_stats: categoryStats,
+      tag_stats: tagStats,
     },
   };
 }

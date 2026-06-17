@@ -113,40 +113,68 @@ async function listItems(openid, options) {
   const sortField = allowedSortFields.includes(sort) ? sort : 'updated_at';
   const sortDirection = order === 'asc' ? 'asc' : 'desc';
 
-  const skip = (page - 1) * pageSize;
+  // 请求量大时用 fetchAll 避免 100 条截断
+  let items, total;
+  if (pageSize > 100) {
+    const all = await fetchAll(db.collection('wishlist_item').where(where), pageSize);
+    // 手动排序（fetchAll 不保证顺序）
+    all.sort((a, b) => {
+      const va = a[sortField], vb = b[sortField];
+      if (va == null && vb == null) return 0;
+      if (va == null) return 1;
+      if (vb == null) return -1;
+      return sortDirection === 'asc' ? (va > vb ? 1 : -1) : (va < vb ? 1 : -1);
+    });
+    items = all;
+    total = all.length;
+  } else {
+    const skip = (page - 1) * pageSize;
+    const [result, countResult] = await Promise.all([
+      db.collection('wishlist_item')
+        .where(where)
+        .orderBy(sortField, sortDirection)
+        .skip(skip)
+        .limit(pageSize)
+        .get(),
+      db.collection('wishlist_item').where(where).count(),
+    ]);
+    items = result.data;
+    total = countResult.total;
+  }
 
-  const [items, countResult] = await Promise.all([
-    db.collection('wishlist_item')
-      .where(where)
-      .orderBy(sortField, sortDirection)
-      .skip(skip)
-      .limit(pageSize)
-      .get(),
-    db.collection('wishlist_item').where(where).count(),
-  ]);
-
-  return {
-    code: 0,
-    data: {
-      items: items.data,
-      total: countResult.total,
-      page,
-      pageSize,
-    },
-  };
+  return { code: 0, data: { items, total, page, pageSize } };
 }
 
 // ============================================================
 // 获取物品列表（增强版：批量查询存款和史低价，消除客户端 N+1）
 // ============================================================
 async function listItemsEnriched(openid, options) {
-  // 1. 获取基础分页列表
-  const listResult = await listItems(openid, options);
-  if (listResult.code !== 0 || !listResult.data.items.length) {
-    return listResult;
+  const { status } = options;
+  const isDerivedStatus = status === 'saving' || status === 'buyable' || status === 'overdue';
+
+  // 派生状态（saving/buyable/overdue）需全量拉取后服务端过滤
+  let items, total;
+  if (isDerivedStatus) {
+    const allItems = await fetchAll(
+      db.collection('wishlist_item').where({ user_id: openid }),
+      500
+    );
+    items = allItems;
+    total = allItems.length;
+  } else {
+    // 1. 获取基础分页列表
+    const listResult = await listItems(openid, options);
+    if (listResult.code !== 0 || !listResult.data.items.length) {
+      return listResult;
+    }
+    items = listResult.data.items;
+    total = listResult.data.total;
   }
 
-  const items = listResult.data.items;
+  if (!items.length) {
+    return { code: 0, data: { items: [], total: 0, page: 1, pageSize: 20 } };
+  }
+
   const itemIds = items.map(i => i._id);
 
   // 2. 批量查询存款（专项 + 通用池分配）
@@ -183,22 +211,54 @@ async function listItemsEnriched(openid, options) {
     }
   }
 
-  // 4. 充实每个 item 的数据
+  // 4. 充实每个 item 的数据 + 计算进度
+  const now = new Date();
   for (const item of items) {
     const s = savingsMap[item._id] || { dedicated: 0, pool: 0 };
     item.dedicated_saved = s.dedicated;
     item.pool_allocated = s.pool;
     item.total_saved = s.dedicated + s.pool;
     item.lowest_price = lowestPriceMap[item._id] || null;
+    // 进度（0-100）
+    item.progress = item.saving_target_amount > 0
+      ? Math.min(Math.round((item.total_saved / item.saving_target_amount) * 100), 100)
+      : 0;
+  }
+
+  // 5. 服务端过滤派生状态
+  if (isDerivedStatus) {
+    items = items.filter(item => {
+      return computeDisplayStatus(item, now) === status;
+    });
+    total = items.length;
   }
 
   return {
     code: 0,
-    data: {
-      items,
-      total: listResult.data.total,
-      page: listResult.data.page,
-      pageSize: listResult.data.pageSize,
-    },
+    data: { items, total, page: 1, pageSize: isDerivedStatus ? items.length : 20 },
   };
+}
+
+// 服务端 display_status 计算（与客户端 wishlist.js 完全一致）
+function computeDisplayStatus(item, now) {
+  if (item.status === 'purchased' || item.status === 'abandoned' || item.status === 'paused') {
+    return item.status;
+  }
+  const daysLeft = item.deadline
+    ? Math.ceil((new Date(item.deadline).getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+    : null;
+  const targetPercent = item.target_save_percent || 100;
+  const progress = item.progress || 0;
+
+  if (item.deadline && daysLeft < 0) {
+    return 'overdue';
+  } else if (
+    (item.target_price && item.current_price <= item.target_price) ||
+    (targetPercent > 0 && progress >= targetPercent)
+  ) {
+    return 'buyable';
+  } else if ((item.total_saved || 0) > 0) {
+    return 'saving';
+  }
+  return 'planning';
 }

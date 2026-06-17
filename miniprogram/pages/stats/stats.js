@@ -15,6 +15,7 @@ Page({
       month_savings: 0,
       month_new_items: 0,
     },
+    tagStatsList: [],
     totalProgress: '0',
     progressColor: '#999',
   },
@@ -43,7 +44,12 @@ Page({
           ? 'var(--color-success)' : 'var(--color-warning)';
       }
 
-      this.setData({ stats, totalProgress, progressColor });
+      // 标签统计转为排序列表
+      const tagStatsList = Object.entries(stats.tag_stats || {})
+        .map(([name, data]) => ({ name, ...data }))
+        .sort((a, b) => b.total - a.total);
+
+      this.setData({ stats, tagStatsList, totalProgress, progressColor });
     } catch (err) {
       console.error('加载统计失败:', err);
     }

@@ -11,19 +11,19 @@
 
   <!-- 总览卡片 -->
   <view class="overview-grid">
-    <view class="overview-item">
+    <view class="overview-item" bindtap="goWishlist">
       <text class="overview-num">{{stats.total_wishes}}</text>
       <text class="overview-label">心愿总数</text>
     </view>
-    <view class="overview-item highlight-saving">
+    <view class="overview-item highlight-saving" bindtap="goWishlistFilter" data-filter="saving">
       <text class="overview-num">{{stats.saving_count}}</text>
       <text class="overview-label">存款中</text>
     </view>
-    <view class="overview-item highlight-buyable">
+    <view class="overview-item highlight-buyable" bindtap="goWishlistFilter" data-filter="buyable">
       <text class="overview-num">{{stats.buyable_count}}</text>
       <text class="overview-label">可购买</text>
     </view>
-    <view class="overview-item highlight-done">
+    <view class="overview-item highlight-done" bindtap="goWishlistFilter" data-filter="purchased">
       <text class="overview-num">{{stats.purchased_count}}</text>
       <text class="overview-label">已购买</text>
     </view>
@@ -31,7 +31,7 @@
 
   <!-- 金额概览 -->
   <view class="amount-cards">
-    <view class="amount-card">
+    <view class="amount-card" bindtap="goStats">
       <view class="amount-row">
         <text class="amount-label">目标总金额</text>
         <text class="amount-value">¥{{util.formatMoney(stats.total_target_amount)}}</text>
@@ -41,8 +41,8 @@
         <text class="amount-value text-success">¥{{util.formatMoney(stats.total_saved_amount)}}</text>
       </view>
       <view class="amount-divider"></view>
-      <view class="amount-row">
-        <text class="amount-label">通用存款池余额</text>
+      <view class="amount-row" bindtap="goPool" catchtap="goPool">
+        <text class="amount-label">通用存款池余额 ›</text>
         <text class="amount-value text-primary fw-bold">¥{{util.formatMoney(stats.pool_balance)}}</text>
       </view>
     </view>
@@ -103,7 +103,8 @@
 
     <!-- 空状态 -->
     <view wx:if="{{!topProgressItem && !nearDeadlineItem && !priceReachedItem}}" class="empty-state">
-      <text>还没有心愿哦～</text>
+      <text>✨ 添加第一个心愿吧</text>
+      <text class="text-light mt-10">存钱买心仪的好物</text>
     </view>
   </view>
 </view>

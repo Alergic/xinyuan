@@ -1,5 +1,6 @@
 // 首页逻辑
 const util = require('../../utils/util.js');
+const app = getApp();
 
 Page({
   data: {
@@ -127,6 +128,24 @@ Page({
   },
   goPool() {
     wx.switchTab({ url: '/pages/pool/pool' });
+  },
+  // 跳转统计
+  goStats() {
+    wx.switchTab({ url: '/pages/stats/stats' });
+  },
+  // 跳转心愿列表
+  goWishlist() {
+    wx.switchTab({ url: '/pages/wishlist/wishlist' });
+  },
+  // 跳转心愿列表并筛选
+  goWishlistFilter(e) {
+    const filter = e.currentTarget.dataset.filter;
+    const filterLabels = { saving: '存款中', buyable: '可购买', purchased: '已购买' };
+    app.globalData.pendingWishlistFilter = {
+      filter,
+      label: filterLabels[filter] || filter,
+    };
+    wx.switchTab({ url: '/pages/wishlist/wishlist' });
   },
   // 跳转详情
   goDetail(e) {

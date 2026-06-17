@@ -21,7 +21,37 @@ Page({
 
   onShow() {
     this.loadCategories();
-    this.loadItems();
+
+    // 检查是否有来自分类页的筛选请求
+    let hasPendingFilter = false;
+    const pending = app.globalData.pendingCategoryFilter;
+    if (pending) {
+      app.globalData.pendingCategoryFilter = null;
+      hasPendingFilter = true;
+      this.setData({
+        'filters.category_id': pending.category_id,
+        categoryLabel: pending.category_name,
+      });
+    }
+
+    // 检查是否有来自首页状态卡片的筛选请求
+    const pendingFilter = app.globalData.pendingWishlistFilter;
+    if (pendingFilter) {
+      app.globalData.pendingWishlistFilter = null;
+      hasPendingFilter = true;
+      const statusLabels = { saving: '存款中', buyable: '可购买', purchased: '已购买' };
+      this.setData({
+        'filters.status': pendingFilter.filter,
+        statusLabel: statusLabels[pendingFilter.filter] || pendingFilter.label,
+      });
+    }
+
+    // 有 pending filter 时延迟一帧再加载，确保 setData 已提交到 this.data
+    if (hasPendingFilter) {
+      wx.nextTick(() => this.loadItems());
+    } else {
+      this.loadItems();
+    }
   },
 
   onPullDownRefresh() {
@@ -48,13 +78,14 @@ Page({
     try {
       const filters = this.data.filters;
 
-      // 已逾期是客户端计算状态，无法传给后端筛选
+      // 排序映射 + 派生状态处理
+      // saving/buyable/overdue 是 display_status 派生值，服务端 listItemsEnriched 已支持
+      // 此处保留客户端兼容：传 all + 大 pageSize，防止云函数未部署时回退
       const serverFilters = { ...filters };
-      if (serverFilters.status === 'overdue') {
-        serverFilters.status = 'all'; // 拉全量再客户端筛选
+      if (serverFilters.status === 'overdue' || serverFilters.status === 'saving' || serverFilters.status === 'buyable') {
+        serverFilters.status = 'all';
+        serverFilters.pageSize = 500;
       }
-
-      // 排序映射
       if (serverFilters.sort === 'current_price_asc') {
         serverFilters.sort = 'current_price';
         serverFilters.order = 'asc';
@@ -101,11 +132,12 @@ Page({
           item.display_status = item.status;
         } else {
           // 自动判断：overdue > buyable > saving > planning
+          const targetPercent = item.target_save_percent || 100;  // 兼容旧数据无此字段
           if (item.deadline && item.days_left < 0) {
             item.display_status = 'overdue';
           } else if (
             (item.target_price && item.current_price <= item.target_price) ||
-            (item.progress >= item.target_save_percent)
+            (targetPercent > 0 && item.progress >= targetPercent)
           ) {
             item.display_status = 'buyable';
           } else if ((item.total_saved || 0) > 0) {
@@ -119,9 +151,9 @@ Page({
         item.status_text = statusMap[item.display_status] || item.status_text;
       }
 
-      // 客户端筛选：已逾期（后端不认识此状态）
-      if (filters.status === 'overdue') {
-        items = items.filter(i => i.display_status === 'overdue');
+      // 客户端筛选：派生状态（后端不认识 saving/buyable/overdue）
+      if (filters.status === 'overdue' || filters.status === 'saving' || filters.status === 'buyable') {
+        items = items.filter(i => i.display_status === filters.status);
       }
 
       this.setData({ items, activeFilter: null });

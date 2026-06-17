@@ -8,7 +8,7 @@
   <!-- 分类列表 -->
   <view wx:if="{{categories.length > 0}}" class="category-list">
     <view wx:for="{{categories}}" wx:key="_id" class="category-item">
-      <view class="category-left">
+      <view class="category-left" bindtap="goWishlistByCategory" data-id="{{item._id}}" data-name="{{item.name}}">
         <view class="category-color" style="background: {{item.color || '#5C6BC0'}}"></view>
         <view>
           <text class="category-name">{{item.name}}</text>
