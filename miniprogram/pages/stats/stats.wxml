@@ -67,7 +67,10 @@
   <view wx:if="{{tagStatsList.length > 0}}" class="card">
     <view class="card-title">🏷️ 标签统计</view>
     <view wx:for="{{tagStatsList}}" wx:key="name" class="stat-row">
-      <text class="text-secondary">{{item.name}}</text>
+      <view style="display:flex;align-items:center">
+        <view style="width:16rpx;height:16rpx;border-radius:50%;background:{{item.color}};margin-right:10rpx"></view>
+        <text class="text-secondary">{{item.name}}</text>
+      </view>
       <view>
         <text class="fw-bold text-primary">¥{{util.formatMoney(item.total)}}</text>
         <text class="text-light ml-10" style="font-size:22rpx">{{item.count}}笔</text>

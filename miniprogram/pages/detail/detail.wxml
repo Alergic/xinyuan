@@ -157,8 +157,8 @@
             <text class="text-light" style="font-size:24rpx" bindtap="deleteSavingRecord" data-id="{{item._id}}" data-type="{{item._type}}">🗑</text>
           </view>
         </view>
-        <view wx:if="{{item.tag_names && item.tag_names.length > 0}}" class="tag-row">
-          <text wx:for="{{item.tag_names}}" wx:key="*this" wx:for-item="t" class="tag-chip">{{t}}</text>
+        <view wx:if="{{item.tag_list && item.tag_list.length > 0}}" class="tag-row">
+          <text wx:for="{{item.tag_list}}" wx:key="name" wx:for-item="t" class="tag-chip" style="color:{{t.color}};background:{{t.color}}18">{{t.name}}</text>
         </view>
       </view>
       <view wx:if="{{savingRecords.length > 3}}" class="expand-toggle" bindtap="toggleSavingRecords">

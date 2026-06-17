@@ -150,7 +150,8 @@ async function listItems(openid, options) {
 // ============================================================
 async function listItemsEnriched(openid, options) {
   const { status } = options;
-  const isDerivedStatus = status === 'saving' || status === 'buyable' || status === 'overdue';
+  // planning 也走 display_status：DB 中 status=planning 但已有存款的 item 会被升级为 saving
+  const isDerivedStatus = status === 'planning' || status === 'saving' || status === 'buyable' || status === 'overdue';
 
   // 派生状态（saving/buyable/overdue）需全量拉取后服务端过滤
   let items, total;

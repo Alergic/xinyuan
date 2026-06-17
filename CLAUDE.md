@@ -1,8 +1,30 @@
 # 心愿计划 — 项目上下文
 
-> 最后更新：2026-06-17（第六轮：5.1 功能完善 + 详情页优化 + Bug 修复）
+> 最后更新：2026-06-17（第七轮：存款标签体验优化）
 
-## 项目简介
+---
+
+## 🚨 开发流程（Agent 必读）
+
+**核心原则：先出方案，再改代码。不跳步、不猜测。**
+
+| 用户意图 | 触发词示例 | 必须先调用 | 禁止行为 |
+|----------|-----------|-----------|----------|
+| 新功能/优化 | "新增/添加/优化/实现" | `Skill: develop-feature` | 禁止跳过 Read 直接改；禁止不写方案就编码 |
+| Bug 修复 | "修复/有问题/不对/不显示/bug" | `Skill: fix-bug` | 禁止不改根因只改表象；禁止不追踪数据流 |
+| 开发完成 | 功能或修复结束 | `Skill: deploy-check` | 禁止不输出部署清单 |
+| 会话结束 | 关闭对话前 | `Skill: update-context` | 禁止不更新 CLAUDE.md |
+| 大改动（>3 文件或新逻辑） | 改动范围大 | `EnterPlanMode` → 方案 → 确认 → 编码 | 禁止直接改完再让用户 review |
+
+### 小迭代纪律
+
+```
+Skill 触发 → Read → 方案 → 用户确认 → 编码 → 自查 → 部署清单 → commit
+```
+
+**每个功能/Bug 一次完整闭环，不做完不开始下一个。**
+
+---
 
 ## 项目简介
 
@@ -230,11 +252,9 @@ xinyuan/
 
 ## 6. 开发注意事项
 
-### 6.0 Skill 调用规则（Agent 必读）
-- **开发新功能**时，先 invoke `develop-feature` skill，按流程执行：读代码 → 方案 → 编码 → 验证清单 → 更新文档
-- **修复 Bug** 时，先 invoke `fix-bug` skill，按流程执行：复现 → 定位根因 → 修复 → 记录
-- **开发完成**后，invoke `deploy-check` 给出部署清单
-- **会话结束**前，invoke `update-context` 更新本文档和记忆文件
+### 6.0 Skill 调用规则
+> 详见顶部「🚨 开发流程」决策表。四个 Skill 覆盖完整开发闭环：
+> `develop-feature` → `fix-bug` → `deploy-check` → `update-context`
 
 ### 6.1 修改云函数后
 必须右键 → **上传并部署：云端安装依赖**，否则云端跑的仍是旧代码。
@@ -279,6 +299,30 @@ exports.main = async (event, context) => {
 ---
 
 ## 7. 重要修改记录
+
+### 2026-06-17（第七轮：存款标签体验优化）
+
+**核心问题：** 选了标签但没有任何显示反馈，标签 chip 太小且不用真实颜色，用户感知不到标签的存在。
+
+**修改内容：**
+- `pickTag()` 返回 `{ tagIds, tagNames }`（原只返回 `tagIds` 数组）
+- 确认弹窗显示标签名：`确认存入 ¥XX？\n标签：#工资存款`
+- `listSavings` 云函数返回 `tag_list: [{name, color}]`，chip 用内联 style 设置标签真实颜色
+- 新增 `getTagColorMap` 辅助函数
+- 标签 chip 视觉优化：字号 20→22rpx、加边框、加粗
+- savings 页标签独立成行（原与备注挤在同一 flex 行）
+- stats 云函数 `tag_stats` 加 `color` 字段，统计页标签列表显示颜色圆点
+- 标签管理页功能说明文案优化
+
+**修改文件：**
+`cloudfunctions/saving/index.js`、`cloudfunctions/stats/index.js`、
+`miniprogram/pages/detail/detail.js`、`detail.wxml`、`detail.wxss`、
+`miniprogram/pages/pool/pool.js`、`pool.wxml`、`pool.wxss`、
+`miniprogram/pages/savings/savings.wxml`、`savings.wxss`、
+`miniprogram/pages/stats/stats.wxml`、
+`miniprogram/pages/tags/tags.wxml`
+
+---
 
 ### 2026-06-17（第六轮：5.1 完善 + 详情页优化 + 筛选修复）
 

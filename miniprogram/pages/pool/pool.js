@@ -114,12 +114,15 @@ Page({
           if (isNaN(amount) || amount <= 0) {
             return util.showToast('请输入有效金额');
           }
-          const confirmed = await util.showConfirm(`确认存入 ¥${amount.toFixed(2)} 到通用池？`);
+          // 选择标签
+          const { tagIds, tagNames } = await this.pickTag();
+          const tagHint = tagNames.length > 0 ? `\n标签：${tagNames.join('、')}` : '';
+          const confirmed = await util.showConfirm(`确认存入 ¥${amount.toFixed(2)} 到通用池？${tagHint}`);
           if (!confirmed) return;
           try {
             await wx.cloud.callFunction({
               name: 'saving',
-              data: { action: 'addPool', data: { amount } },
+              data: { action: 'addPool', data: { amount, tag_ids: tagIds } },
             });
             util.showToast('已存入通用池', 'success');
             this.loadAll();
@@ -130,6 +133,34 @@ Page({
         }
       },
     });
+  },
+
+  // 选择存款标签（返回 { tagIds, tagNames }）
+  async pickTag() {
+    try {
+      const res = await wx.cloud.callFunction({
+        name: 'saving',
+        data: { action: 'listTags' },
+      });
+      const tags = res.result?.data?.tags || [];
+      if (tags.length === 0) return { tagIds: [], tagNames: [] };
+
+      return new Promise((resolve) => {
+        wx.showActionSheet({
+          itemList: [...tags.map(t => `🏷 ${t.name}`), '不选标签'],
+          success: (r) => {
+            if (r.tapIndex < tags.length) {
+              resolve({ tagIds: [tags[r.tapIndex]._id], tagNames: [tags[r.tapIndex].name] });
+            } else {
+              resolve({ tagIds: [], tagNames: [] });
+            }
+          },
+          fail: () => resolve({ tagIds: [], tagNames: [] }),
+        });
+      });
+    } catch (e) {
+      return { tagIds: [], tagNames: [] };
+    }
   },
 
   // 显示分配面板

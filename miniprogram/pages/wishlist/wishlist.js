@@ -82,7 +82,7 @@ Page({
       // saving/buyable/overdue 是 display_status 派生值，服务端 listItemsEnriched 已支持
       // 此处保留客户端兼容：传 all + 大 pageSize，防止云函数未部署时回退
       const serverFilters = { ...filters };
-      if (serverFilters.status === 'overdue' || serverFilters.status === 'saving' || serverFilters.status === 'buyable') {
+      if (['planning', 'saving', 'buyable', 'overdue'].includes(serverFilters.status)) {
         serverFilters.status = 'all';
         serverFilters.pageSize = 500;
       }
@@ -151,8 +151,8 @@ Page({
         item.status_text = statusMap[item.display_status] || item.status_text;
       }
 
-      // 客户端筛选：派生状态（后端不认识 saving/buyable/overdue）
-      if (filters.status === 'overdue' || filters.status === 'saving' || filters.status === 'buyable') {
+      // 客户端筛选：display_status 派生状态（planning/saving/buyable/overdue）
+      if (['planning', 'saving', 'buyable', 'overdue'].includes(filters.status)) {
         items = items.filter(i => i.display_status === filters.status);
       }
 

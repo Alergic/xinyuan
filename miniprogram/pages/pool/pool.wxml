@@ -48,6 +48,9 @@
             {{item.saving_type === 'pool' ? '+' : '-'}}¥{{util.formatMoney(item.amount)}}
           </text>
           <text class="record-note" wx:if="{{item.note}}">{{item.note}}</text>
+          <view wx:if="{{item.tag_list && item.tag_list.length > 0}}" class="tag-row">
+            <text wx:for="{{item.tag_list}}" wx:key="name" wx:for-item="t" class="tag-chip" style="color:{{t.color}};background:{{t.color}}18">{{t.name}}</text>
+          </view>
         </view>
         <view style="display:flex;align-items:center">
           <text class="text-light" style="font-size:22rpx;margin-right:15rpx">{{item.saved_at_text}}</text>

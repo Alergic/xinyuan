@@ -118,13 +118,22 @@ async function listSavings(openid, options) {
 
   const countResult = await db.collection('saving_record').where(where).count();
 
-  // 批量获取标签名
+  // 批量获取标签名 + 颜色
   const tagMap = await getTagNameMap(openid);
+  const tagColorMap = await getTagColorMap(openid);
 
-  const enriched = records.data.map(r => ({
-    ...r,
-    tag_names: (r.tag_ids || []).map(id => tagMap[id] || '未知标签').filter(Boolean),
-  }));
+  const enriched = records.data.map(r => {
+    const tagList = (r.tag_ids || []).map(id => ({
+      name: tagMap[id] || '',
+      color: tagColorMap[id] || '#5C6BC0',
+    })).filter(t => t.name);
+    return {
+      ...r,
+      tag_names: tagList.map(t => t.name),
+      tag_colors: tagList.map(t => t.color),
+      tag_list: tagList,
+    };
+  });
 
   return {
     code: 0,
@@ -513,6 +522,23 @@ async function getTagNameMap(openid) {
     const map = {};
     for (const t of tags) {
       map[t._id] = t.name;
+    }
+    return map;
+  } catch (e) {
+    return {};
+  }
+}
+
+// 批量获取标签颜色映射（内部使用）
+async function getTagColorMap(openid) {
+  try {
+    const tags = await fetchAll(
+      db.collection('deposit_tag').where({ user_id: openid }),
+      100
+    );
+    const map = {};
+    for (const t of tags) {
+      map[t._id] = t.color || '#5C6BC0';
     }
     return map;
   } catch (e) {

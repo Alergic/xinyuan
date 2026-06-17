@@ -58,3 +58,20 @@
   margin-top: 4rpx;
   display: block;
 }
+
+/* 标签 */
+.tag-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8rpx;
+  margin-top: 8rpx;
+}
+.tag-chip {
+  display: inline-block;
+  padding: 4rpx 14rpx;
+  border-radius: 16rpx;
+  font-size: 22rpx;
+  font-weight: 500;
+  border: 1rpx solid currentColor;
+  opacity: 0.85;
+}

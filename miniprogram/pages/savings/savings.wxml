@@ -43,16 +43,16 @@
         </view>
       </view>
       <view class="flex-between mt-10">
-        <view style="display:flex;align-items:center;flex:1">
-          <text wx:if="{{item.note}}" class="text-light" style="font-size:24rpx">📝 {{item.note}}</text>
-          <view wx:if="{{item.tag_names && item.tag_names.length > 0}}" class="saving-tag-row">
-            <text wx:for="{{item.tag_names}}" wx:key="*this" wx:for-item="t" class="tag-chip">{{t}}</text>
-          </view>
+        <view style="flex:1">
+          <text wx:if="{{item.note}}" class="text-light" style="font-size:24rpx;display:block">📝 {{item.note}}</text>
         </view>
         <view style="display:flex;align-items:center">
           <text class="text-light" style="font-size:22rpx;margin-right:15rpx">{{item.saved_at_text}}</text>
           <text class="text-light" style="font-size:28rpx" bindtap="deleteRecord" data-id="{{item._id}}">🗑</text>
         </view>
+      </view>
+      <view wx:if="{{item.tag_list && item.tag_list.length > 0}}" class="saving-tag-row">
+        <text wx:for="{{item.tag_list}}" wx:key="name" wx:for-item="t" class="tag-chip" style="color:{{t.color}};background:{{t.color}}18">{{t.name}}</text>
       </view>
     </view>
   </view>

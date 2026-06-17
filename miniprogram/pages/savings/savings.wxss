@@ -86,16 +86,17 @@
 .saving-tag-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 6rpx;
-  margin-left: 12rpx;
+  gap: 8rpx;
+  margin-top: 8rpx;
 }
 .tag-chip {
   display: inline-block;
-  padding: 2rpx 12rpx;
+  padding: 4rpx 14rpx;
   border-radius: 16rpx;
-  font-size: 20rpx;
-  color: var(--color-primary);
-  background: var(--color-primary-light);
+  font-size: 22rpx;
+  font-weight: 500;
+  border: 1rpx solid currentColor;
+  opacity: 0.85;
 }
 
 /* 给页面底部留出按钮空间 */

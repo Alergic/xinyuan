@@ -108,14 +108,19 @@ async function getStats(openid) {
   ]);
 
   const tagMap = {};
-  for (const t of tags) { tagMap[t._id] = t.name; }
+  const tagColorMap = {};
+  for (const t of tags) {
+    tagMap[t._id] = t.name;
+    tagColorMap[t._id] = t.color || '#5C6BC0';
+  }
 
   const tagStats = {};
   for (const r of allSavings) {
     if (!r.tag_ids || r.tag_ids.length === 0) continue;
     for (const tid of r.tag_ids) {
       const name = tagMap[tid] || '未知';
-      if (!tagStats[name]) tagStats[name] = { count: 0, total: 0 };
+      const color = tagColorMap[tid] || '#5C6BC0';
+      if (!tagStats[name]) tagStats[name] = { count: 0, total: 0, color };
       tagStats[name].count++;
       tagStats[name].total += r.amount;
     }

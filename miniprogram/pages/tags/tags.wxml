@@ -2,7 +2,7 @@
 <view class="container">
   <view class="card">
     <view class="card-title">🏷️ 存款标签</view>
-    <view class="card-subtitle">为存款记录打标签，方便分类统计</view>
+    <view class="card-subtitle">给每笔存款打上来源标签（如工资、退款、省下的外卖钱…），统计页会按标签汇总，看看钱都是从哪存下来的 💪</view>
 
     <view wx:if="{{tags.length === 0}}" class="empty-state">
       <text>还没有标签，点击下方按钮创建</text>

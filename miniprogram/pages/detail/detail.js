@@ -594,7 +594,7 @@ Page({
     });
   },
 
-  // 添加专项存款（两步：金额 → 备注）
+  // 添加专项存款（三步：金额 → 备注 → 标签）
   addSaving() {
     wx.showModal({
       title: '添加专项存款',
@@ -612,7 +612,11 @@ Page({
             editable: true,
             placeholderText: '如：少点了一次外卖、退款到账等',
             success: async (res2) => {
-              const confirmed = await util.showConfirm(`确认存入 ¥${amount.toFixed(2)}？`);
+              const note = (res2.confirm && res2.content) ? res2.content : '';
+              // 第三步：选择标签（如果有）
+              const { tagIds, tagNames } = await this.pickTag();
+              const tagHint = tagNames.length > 0 ? `\n标签：${tagNames.join('、')}` : '';
+              const confirmed = await util.showConfirm(`确认存入 ¥${amount.toFixed(2)}？${tagHint}`);
               if (!confirmed) return;
               try {
                 await wx.cloud.callFunction({
@@ -622,7 +626,8 @@ Page({
                     data: {
                       item_id: this.data.itemId,
                       amount,
-                      note: (res2.confirm && res2.content) ? res2.content : '',
+                      note,
+                      tag_ids: tagIds,
                     },
                   },
                 });
@@ -637,6 +642,34 @@ Page({
         }
       },
     });
+  },
+
+  // 选择存款标签（返回 { tagIds, tagNames }）
+  async pickTag() {
+    try {
+      const res = await wx.cloud.callFunction({
+        name: 'saving',
+        data: { action: 'listTags' },
+      });
+      const tags = res.result?.data?.tags || [];
+      if (tags.length === 0) return { tagIds: [], tagNames: [] };
+
+      return new Promise((resolve) => {
+        wx.showActionSheet({
+          itemList: [...tags.map(t => `🏷 ${t.name}`), '不选标签'],
+          success: (r) => {
+            if (r.tapIndex < tags.length) {
+              resolve({ tagIds: [tags[r.tapIndex]._id], tagNames: [tags[r.tapIndex].name] });
+            } else {
+              resolve({ tagIds: [], tagNames: [] });
+            }
+          },
+          fail: () => resolve({ tagIds: [], tagNames: [] }),
+        });
+      });
+    } catch (e) {
+      return { tagIds: [], tagNames: [] };
+    }
   },
 
   // 从通用池分配
