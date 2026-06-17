@@ -1,6 +1,6 @@
 # 心愿计划 — 项目上下文
 
-> 最后更新：2026-06-17（第三轮：状态管理 + 统计修复 + 多图/备注）
+> 最后更新：2026-06-17（第四轮：统计修复 + 分配记录 + 目标存款比例）
 
 ## 项目简介
 
@@ -30,6 +30,7 @@
 | 统计计数逻辑 | 云函数端与客户端 `display_status` 保持一致 | 避免 stats 页显示 0（原直接查 DB `status: 'saving'` 永远为空） |
 | 多图存储 | `image_urls` 数组 + `image_url`（首图兼容） | 兼容旧单图数据，新增页用 3 图网格 |
 | 备注采集 | 价格/存款弹窗两步式（金额 → 备注） | 微信小程序一次只能弹一个输入框，两步是权衡方案 |
+| pool_allocation 查询 | 通过云函数 `listAllocations` 而非客户端直查 | 客户端直查受集合权限/索引限制，可能静默返回空 |
 
 ### 1.2 已修复的关键 Bug
 
@@ -55,6 +56,10 @@
 | 优先级标签全为灰色 | wishlist.wxml 用 `tag-priority` 单一灰色类 | 改为 `tag-{{item.priority}}` 复用全局红/橙/蓝紫 |
 | 状态改回计划中后列表仍显示可购买 | `display_status` 纯数据驱动，忽略用户显式设置的 DB status | display_status 计算尊重 `planning`/`paused`，不自动升级 |
 | 重点心愿卡片重复 | 三个卡片独立选取无去重 | `usedIds` Set 按优先级依次排除 |
+| 统计页"可购买"计数不准 | stats 要求 `hasEnough`（100% 存款）才计 buyable，wishlist 无此限制 | 去掉 hasEnough，与 wishlist 一致：价格达标或进度达标即 buyable |
+| 统计卡片右侧空白 | `.stat-card` 缺少 `box-sizing: border-box`，padding 撑破宽度 | 加 `box-sizing: border-box` |
+| pool_allocation 客户端查不到 | 客户端 SDK 直查 `pool_allocation` 受权限/索引限制，静默返回空 | 新增 `saving.listAllocations` 云函数，所有分配查询走服务端 |
+| 分配操作静默失败 | 云函数调用后不检查 `result.code`，失败也 toast 成功 | 所有分配调用加 `code !== 0` 检查 |
 
 ### 1.3 技术栈约定
 
@@ -165,6 +170,9 @@ xinyuan/
 - [x] 价格记录备注（更新价格时可选填写）
 - [x] 存款记录备注（添加存款时可选填写）
 - [x] 三张商品图（image_urls 数组 + 3 图上传 + 详情轮播 + 列表角标）
+- [x] 目标存款比例滑块（新增/编辑页，10%-100%，步长 5%）
+- [x] 统计页可购买/存款中与列表一致
+- [x] pool_allocation 云函数查询（解决客户端查不到问题）
 
 ---
 
@@ -242,11 +250,44 @@ exports.main = async (event, context) => {
 7. **WXML 不支持 `.toFixed()`、嵌套三元等** — 在 JS 中预计算，WXML 只用简单 `{{var}}`
 8. **客户端派生状态（overdue/buyable）** 不能传给后端筛选，需客户端过滤或特殊处理
 9. **DB status 字段不包含 `saving`/`buyable`/`overdue`** — 这些是客户端 display_status 计算值，统计云函数不能直接查 status，必须同样计算
-10. **`display_status` 不能纯数据驱动** — 用户显式设为 `planning` 或 `paused` 时应尊重用户意图，不自动升级为 `buyable`
+10. **`display_status` 不能纯数据驱动** — 用户显式设为 `paused` 时应该原样展示。`planning` 是初始状态应该参与自动推导
+11. **客户端直查集合可能因权限/索引静默失败** — 云函数创建的文档，客户端查询受集合权限影响。调试时优先用云函数查询（服务端不受限），加 `.catch` 时务必打 log
+12. **云函数调用必须检查 `result.code`** — `wx.cloud.callFunction` 不 throw on 业务错误码，不检查 code 会导致失败也显示"成功"
+13. **`box-sizing` 不继承** — CSS 中 `box-sizing: border-box` 需显式设置到每个需要精确宽度计算的元素上
 
 ---
 
 ## 7. 重要修改记录
+
+### 2026-06-17（统计修复 + 分配记录 + 目标存款比例 — 第四轮）
+
+**云函数修改：**
+- `stats/index.js` — 去掉 planning 特殊逻辑（误伤所有默认 planning 的心愿），去掉 hasEnough 限制，buyable = priceMet || progressMet
+- `saving/index.js` — 新增 `listAllocations` action（服务端查 pool_allocation，解决客户端权限/索引导致查不到的问题）
+
+**统计页修复：**
+- `.stat-card` 添加 `box-sizing: border-box`（修复右侧空白）
+- stats 与 wishlist 的 display_status 判定完全对齐
+
+**目标存款比例（add 页）：**
+- 新增 `<slider>` 控件，10%-100%，步长 5%，默认 100%
+- 实时提示"存到 XX% 即视为可购买"
+
+**pool_allocation 查询改造：**
+- detail.js `loadSavingRecords`：客户端 `db.collection('pool_allocation')` → `saving.listAllocations` 云函数
+- pool.js `loadAllocations`：同上改造 + 加 try-catch + 移除 openid 轮询
+- detail.js + pool.js 分配函数：加 `result.code !== 0` 检查，防止静默失败
+- pool 页分配记录 ↩ → 🗑 图标统一
+
+**修改文件清单：**
+`cloudfunctions/stats/index.js`、`cloudfunctions/saving/index.js`、
+`miniprogram/pages/detail/detail.js`、
+`miniprogram/pages/pool/pool.js`、`pool.wxml`、
+`miniprogram/pages/stats/stats.wxss`、
+`miniprogram/pages/wishlist/wishlist.js`、
+`miniprogram/pages/add/add.wxml`、`add.js`、`add.wxss`
+
+---
 
 ### 2026-06-17（状态管理 + 统计修复 + 多图/备注 — 第三轮）
 

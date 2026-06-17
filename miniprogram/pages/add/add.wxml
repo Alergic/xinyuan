@@ -19,6 +19,17 @@
       <input class="form-input" type="digit" placeholder="希望入手的价格" value="{{form.target_price}}" bindinput="onFieldChange" data-field="target_price" />
     </view>
 
+    <!-- 目标存款比例 -->
+    <view class="form-group">
+      <view class="form-label">
+        <text>目标存款比例</text>
+        <text class="text-light" style="font-size:22rpx;margin-left:8rpx">（存到 {{form.target_save_percent}}% 即视为可购买）</text>
+      </view>
+      <view class="percent-slider">
+        <slider min="10" max="100" step="5" value="{{form.target_save_percent}}" bindchange="onPercentChange" show-value block-size="18" activeColor="#5C6BC0" backgroundColor="#EBEBEB" />
+      </view>
+    </view>
+
     <!-- 分类（可选） -->
     <view class="form-group">
       <view class="form-label">分类</view>

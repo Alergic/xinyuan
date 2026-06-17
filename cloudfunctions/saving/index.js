@@ -15,9 +15,10 @@ exports.main = async (event, context) => {
       case 'allocate':     return allocatePool(openid, data);
       case 'deleteRecord': return deleteSavingRecord(openid, data.id);
       case 'deallocate':   return deallocatePool(openid, data.id);
-      case 'list':         return listSavings(openid, data || {});
-      case 'poolBalance':  return getPoolBalance(openid);
-      case 'itemSavings':  return getItemSavings(openid, data.item_id);
+      case 'list':           return listSavings(openid, data || {});
+      case 'listAllocations': return listAllocations(openid, data || {});
+      case 'poolBalance':    return getPoolBalance(openid);
+      case 'itemSavings':    return getItemSavings(openid, data.item_id);
       default:             return { code: -1, msg: '未知操作' };
     }
   });
@@ -175,6 +176,28 @@ async function deallocatePool(openid, allocationId) {
   await requireOwnership('pool_allocation', allocationId, openid);
   await db.collection('pool_allocation').doc(allocationId).remove();
   return { code: 0, msg: '撤销成功' };
+}
+
+// 查询通用池分配记录（云函数端，绕过客户端权限问题）
+async function listAllocations(openid, options) {
+  const { item_id, pageSize = 50 } = options || {};
+  const where = { user_id: openid };
+  if (item_id) where.item_id = item_id;
+
+  const records = await fetchAll(
+    db.collection('pool_allocation').where(where)
+  );
+
+  // 按时间降序
+  records.sort((a, b) => new Date(b.allocated_at) - new Date(a.allocated_at));
+
+  return {
+    code: 0,
+    data: {
+      records: records.slice(0, pageSize),
+      total: records.length,
+    },
+  };
 }
 
 // 保存标签关联

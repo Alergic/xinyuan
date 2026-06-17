@@ -95,20 +95,12 @@ Page({
         }
 
         // display_status 计算规则：
-        // 1. purchased/abandoned/paused — 原样展示
-        // 2. planning — 用户显式设回的计划中，不再自动升级为 buyable
-        // 3. 其他情况 — 根据数据自动判断 overdue / buyable / saving / planning
+        // purchased/abandoned/paused — 终态，原样展示
+        // planning — 初始状态，与其他非终态一样自动推导
         if (item.status === 'purchased' || item.status === 'abandoned' || item.status === 'paused') {
           item.display_status = item.status;
-        } else if (item.status === 'planning') {
-          // 用户显式设为计划中，只判断是否逾期
-          if (item.deadline && item.days_left < 0) {
-            item.display_status = 'overdue';
-          } else {
-            item.display_status = 'planning';
-          }
         } else {
-          // 自动判断（兼容旧数据中可能存在的其他状态）
+          // 自动判断：overdue > buyable > saving > planning
           if (item.deadline && item.days_left < 0) {
             item.display_status = 'overdue';
           } else if (

@@ -72,3 +72,7 @@
   color: var(--color-danger);
   margin-left: auto;
 }
+
+.percent-slider {
+  padding: 8rpx 0;
+}

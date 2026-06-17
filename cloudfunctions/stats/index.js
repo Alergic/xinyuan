@@ -43,15 +43,14 @@ async function getStats(openid) {
   }
 
   // display_status 派生逻辑（与客户端 wishlist.js 保持一致）
-  // purchased / abandoned / paused → 原样
-  // planning（用户显式设回）→ 只判断 overdue，不自动升级为 buyable
-  // 其他 → 自动判断 overdue / buyable / saving / planning
+  // purchased / abandoned / paused → 不参与统计
+  // planning → 初始状态，参与自动推导（与其他非终态一样）
   let savingCount = 0;
   let buyableCount = 0;
   const now = new Date();
 
   for (const item of items) {
-    if (item.status === 'purchased' || item.status === 'abandoned') continue;
+    if (item.status === 'purchased' || item.status === 'abandoned' || item.status === 'paused') continue;
 
     const saved = itemSavingsMap[item._id] || 0;
     const isOverdue = item.deadline && new Date(item.deadline) < now;
@@ -61,23 +60,10 @@ async function getStats(openid) {
     const progressMet = item.saving_target_amount > 0
       && (saved / item.saving_target_amount * 100) >= targetPercent;
 
-    if (item.status === 'paused') {
-      // 暂缓不参与 saving/buyable 计数
-      continue;
-    }
+    if (isOverdue) continue; // 逾期不参与 saving/buyable
 
-    if (item.status === 'planning') {
-      // 用户显式计划中，不自动升级为 buyable
-      if (saved > 0 && !isOverdue) savingCount++;
-      continue;
-    }
-
-    // 自动判断
-    if (isOverdue) {
-      continue; // overdue 不参与 saving/buyable
-    }
-
-    if (hasEnough && (priceMet || progressMet)) {
+    // 与 wishlist.js 完全一致：价格达标 或 存款进度达标 → 可购买
+    if (priceMet || progressMet) {
       buyableCount++;
     } else if (saved > 0) {
       savingCount++;

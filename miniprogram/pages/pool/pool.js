@@ -60,60 +60,46 @@ Page({
     this.setData({ records, totalPoolIn });
   },
 
-  // 加载分配记录（批量获取物品名，消除 N+1）
+  // 加载分配记录（通过云函数查询，避免客户端权限/索引问题）
   async loadAllocations() {
-    const db = wx.cloud.database();
-    const app = getApp();
-
-    // 等待 openid 可用
-    let openid = app.globalData.openid;
-    if (!openid) {
-      // login 云函数可能还未完成，等待一下
-      await new Promise((resolve) => {
-        const check = () => {
-          openid = app.globalData.openid;
-          if (openid) resolve();
-          else setTimeout(check, 200);
-        };
-        check();
+    try {
+      const db = wx.cloud.database();
+      const res = await wx.cloud.callFunction({
+        name: 'saving',
+        data: { action: 'listAllocations', data: { pageSize: 50 } },
       });
-      if (!openid) return; // 超时保护
-    }
 
-    const res = await db.collection('pool_allocation')
-      .where({ user_id: openid })
-      .orderBy('allocated_at', 'desc')
-      .limit(50)
-      .get();
+      const allocations = (res.result.data.records || []).map(a => ({
+        ...a,
+        allocated_at_text: util.formatDateTime(a.allocated_at),
+      }));
 
-    const allocations = res.data.map(a => ({
-      ...a,
-      allocated_at_text: util.formatDateTime(a.allocated_at),
-    }));
+      const totalAllocated = allocations.reduce((sum, a) => sum + a.amount, 0);
 
-    const totalAllocated = allocations.reduce((sum, a) => sum + a.amount, 0);
-
-    // 批量获取物品名称（替代逐个查询）
-    const itemIds = [...new Set(allocations.map(a => a.item_id).filter(Boolean))];
-    if (itemIds.length > 0) {
-      const itemMap = {};
-      try {
-        const _ = db.command;
-        const itemRes = await db.collection('wishlist_item')
-          .where({ _id: _.in(itemIds) })
-          .get();
-        for (const item of itemRes.data) {
-          itemMap[item._id] = item.name;
+      // 批量获取物品名称（替代逐个查询）
+      const itemIds = [...new Set(allocations.map(a => a.item_id).filter(Boolean))];
+      if (itemIds.length > 0) {
+        const itemMap = {};
+        try {
+          const _ = db.command;
+          const itemRes = await db.collection('wishlist_item')
+            .where({ _id: _.in(itemIds) })
+            .get();
+          for (const item of itemRes.data) {
+            itemMap[item._id] = item.name;
+          }
+        } catch (e) {
+          console.error('批量获取物品名失败:', e);
         }
-      } catch (e) {
-        console.error('批量获取物品名失败:', e);
+        for (const a of allocations) {
+          a.item_name = itemMap[a.item_id] || '已删除';
+        }
       }
-      for (const a of allocations) {
-        a.item_name = itemMap[a.item_id] || '已删除';
-      }
-    }
 
-    this.setData({ allocations, totalAllocated });
+      this.setData({ allocations, totalAllocated });
+    } catch (err) {
+      console.error('加载分配记录失败:', err);
+    }
   },
 
   // 加载心愿物品列表（用于分配选择）
@@ -200,7 +186,7 @@ Page({
     }
 
     try {
-      await wx.cloud.callFunction({
+      const allocRes = await wx.cloud.callFunction({
         name: 'saving',
         data: {
           action: 'allocate',
@@ -211,6 +197,9 @@ Page({
           },
         },
       });
+      if (allocRes.result.code !== 0) {
+        return util.showToast(allocRes.result.msg || '分配失败');
+      }
       util.showToast('分配成功', 'success');
       this.setData({
         showAllocate: false,

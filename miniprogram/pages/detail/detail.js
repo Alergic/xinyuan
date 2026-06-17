@@ -145,38 +145,21 @@ Page({
     });
   },
 
-  // 加载存款明细（专项存款 + 通用池分配）
+  // 加载存款明细（专项存款 + 通用池分配，均走云函数）
   async loadSavingRecords() {
     try {
-      const app = getApp();
-      let openid = app.globalData.openid;
-      // 等待 openid
-      if (!openid) {
-        await new Promise(resolve => {
-          const check = () => {
-            openid = app.globalData.openid;
-            if (openid) resolve(); else setTimeout(check, 200);
-          };
-          check();
-        });
-      }
-      if (!openid) return;
-
-      const db = wx.cloud.database();
       const itemId = this.data.itemId;
 
-      // 并行查询专项存款和通用池分配
+      // 并行查询专项存款和通用池分配（均通过云函数，避免客户端权限问题）
       const [savingRes, allocRes] = await Promise.all([
         wx.cloud.callFunction({
           name: 'saving',
           data: { action: 'list', data: { item_id: itemId, pageSize: 10 } },
         }),
-        db.collection('pool_allocation')
-          .where({ user_id: openid, item_id: itemId })
-          .orderBy('allocated_at', 'desc')
-          .limit(10)
-          .get()
-          .catch(() => ({ data: [] })),
+        wx.cloud.callFunction({
+          name: 'saving',
+          data: { action: 'listAllocations', data: { item_id: itemId, pageSize: 10 } },
+        }),
       ]);
 
       // 转换存款记录
@@ -187,7 +170,7 @@ Page({
       }));
 
       // 转换分配记录为统一格式
-      const allocations = (allocRes.data || []).map(a => ({
+      const allocations = (allocRes.result.data.records || []).map(a => ({
         _id: a._id,
         amount: a.amount,
         note: a.note || '',
@@ -347,13 +330,16 @@ Page({
             if (!confirmed) return;
 
             try {
-              await wx.cloud.callFunction({
+              const allocRes = await wx.cloud.callFunction({
                 name: 'saving',
                 data: {
                   action: 'allocate',
                   data: { item_id: this.data.itemId, amount, allocation_method: 'manual' },
                 },
               });
+              if (allocRes.result.code !== 0) {
+                return util.showToast(allocRes.result.msg || '分配失败');
+              }
               util.showToast(`已分配 ¥${amount.toFixed(2)}`, 'success');
               this.loadAll();
             } catch (err) {

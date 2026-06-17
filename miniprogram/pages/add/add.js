@@ -109,6 +109,11 @@ Page({
     });
   },
 
+  // 目标存款比例
+  onPercentChange(e) {
+    this.setData({ 'form.target_save_percent': e.detail.value });
+  },
+
   // 优先级选择
   setPriority(e) {
     this.setData({ 'form.priority': e.currentTarget.dataset.value });

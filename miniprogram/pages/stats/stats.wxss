@@ -11,6 +11,7 @@
   padding: 24rpx 16rpx;
   text-align: center;
   box-shadow: var(--shadow);
+  box-sizing: border-box;
 }
 .stat-num {
   display: block;

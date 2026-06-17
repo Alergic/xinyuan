@@ -73,7 +73,7 @@
         </view>
         <view style="display:flex;align-items:center">
           <text class="text-light" style="font-size:22rpx;margin-right:15rpx">{{item.allocated_at_text}}</text>
-          <text class="text-warning" style="font-size:28rpx" bindtap="undoAllocation" data-id="{{item._id}}">↩</text>
+          <text class="text-light" style="font-size:28rpx" bindtap="undoAllocation" data-id="{{item._id}}">🗑</text>
         </view>
       </view>
     </view>
